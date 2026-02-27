@@ -1,0 +1,32 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --surface: #09090b;
+  --surface-muted: #18181b;
+  --foreground: #fafafa;
+  --muted: #a1a1aa;
+  --accent: #8b5cf6;
+  --accent-hover: #a78bfa;
+}
+
+.dark {
+  --surface: #09090b;
+  --surface-muted: #18181b;
+  --foreground: #fafafa;
+  --muted: #a1a1aa;
+  --accent: #8b5cf6;
+  --accent-hover: #a78bfa;
+}
+
+body {
+  background: var(--surface);
+  color: var(--foreground);
+}
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+}

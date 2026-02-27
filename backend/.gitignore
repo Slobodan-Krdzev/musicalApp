@@ -1,0 +1,22 @@
+# Dependencies
+node_modules/
+
+# Environment - never commit
+.env
+.env.*
+!.env.example
+
+# Build output
+dist/
+
+# Local uploads
+uploads/
+
+# Logs
+*.log
+npm-debug.log*
+
+# OS and editor
+.DS_Store
+.idea/
+.vscode/

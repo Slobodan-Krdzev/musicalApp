@@ -1,0 +1,89 @@
+'use client';
+
+import { useState } from 'react';
+import Link from 'next/link';
+import { Button } from '@/components/ui/Button';
+import { Input } from '@/components/ui/Input';
+import { Card, CardHeader, CardContent } from '@/components/ui/Card';
+import { useRegister } from '@/hooks/useAuth';
+
+type Role = 'MUSICIAN' | 'VENUE';
+
+export default function RegisterPage() {
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [role, setRole] = useState<Role>('MUSICIAN');
+  const register = useRegister();
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    register.mutate({ email, password, role });
+  };
+
+  return (
+    <Card className="w-full max-w-md">
+      <CardHeader>
+        <h1 className="text-xl font-semibold text-zinc-100">Create account</h1>
+        <p className="text-sm text-zinc-400">Choose your role and sign up.</p>
+      </CardHeader>
+      <CardContent>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <Input
+            label="Email"
+            type="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            placeholder="you@example.com"
+            required
+            error={register.error?.message}
+          />
+          <Input
+            label="Password"
+            type="password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            placeholder="Min 8 characters"
+            required
+            minLength={8}
+          />
+          <div>
+            <label className="block text-sm font-medium text-zinc-300 mb-2">I am a</label>
+            <div className="flex gap-4">
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="radio"
+                  name="role"
+                  value="MUSICIAN"
+                  checked={role === 'MUSICIAN'}
+                  onChange={() => setRole('MUSICIAN')}
+                  className="rounded border-zinc-600 text-violet-500 focus:ring-violet-500"
+                />
+                <span className="text-zinc-300">Musician / Band</span>
+              </label>
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="radio"
+                  name="role"
+                  value="VENUE"
+                  checked={role === 'VENUE'}
+                  onChange={() => setRole('VENUE')}
+                  className="rounded border-zinc-600 text-violet-500 focus:ring-violet-500"
+                />
+                <span className="text-zinc-300">Venue</span>
+              </label>
+            </div>
+          </div>
+          <Button type="submit" className="w-full" loading={register.isPending}>
+            Sign up
+          </Button>
+        </form>
+        <p className="mt-4 text-center text-sm text-zinc-400">
+          Already have an account?{' '}
+          <Link href="/login" className="text-violet-400 hover:underline">
+            Log in
+          </Link>
+        </p>
+      </CardContent>
+    </Card>
+  );
+}
