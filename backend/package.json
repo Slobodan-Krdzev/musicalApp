@@ -4,7 +4,7 @@
   "type": "module",
   "scripts": {
     "dev": "node --watch src/index.js",
-    "start": "node dist/index.js",
+    "start": "node src/index.js",
     "build": "tsc || true",
     "seed": "node src/scripts/seed.js",
     "resetdb": "node src/scripts/resetDB.js"

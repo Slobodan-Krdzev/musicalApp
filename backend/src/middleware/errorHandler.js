@@ -5,6 +5,10 @@ import { AppError } from '../utils/errors.js';
  * Central error handler. Logs with context; returns sanitized response.
  */
 export function errorHandler(err, req, res, next) {
+  if (err?.message === 'Not allowed by CORS') {
+    return res.status(403).json({ success: false, error: 'Not allowed by CORS' });
+  }
+
   const statusCode = err.statusCode ?? 500;
   const message = err instanceof AppError ? err.message : 'Internal server error';
   const details = err.details ?? undefined;

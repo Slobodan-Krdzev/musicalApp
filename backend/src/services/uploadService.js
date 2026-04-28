@@ -1,15 +1,6 @@
 import path from 'path';
 import fs from 'fs/promises';
-import { fileURLToPath } from 'url';
-import { APP_URL } from '../config/env.js';
-
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-
-/**
- * Cloud-ready upload abstraction. Current: local filesystem (mock).
- * Replace with S3/GCS implementation using same interface.
- */
-const UPLOAD_BASE = process.env.UPLOAD_DIR || path.join(__dirname, '../../uploads');
+import { UPLOAD_ROOT, APP_URL } from '../config/env.js';
 
 export const uploadService = {
   /**
@@ -18,7 +9,7 @@ export const uploadService = {
    */
   async saveFile(buffer, options = {}) {
     const { folder = 'general', filename: name } = options;
-    const dir = path.join(UPLOAD_BASE, folder);
+    const dir = path.join(UPLOAD_ROOT, folder);
     await fs.mkdir(dir, { recursive: true });
     const filename = name || `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
     const filepath = path.join(dir, filename);
@@ -27,7 +18,7 @@ export const uploadService = {
   },
 
   async deleteFile(relativePath) {
-    const filepath = path.join(UPLOAD_BASE, relativePath.replace(/^\/uploads\//, ''));
+    const filepath = path.join(UPLOAD_ROOT, relativePath.replace(/^\/uploads\//, ''));
     try {
       await fs.unlink(filepath);
       return true;

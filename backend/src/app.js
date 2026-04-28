@@ -1,8 +1,6 @@
 import express from 'express';
-import path from 'path';
-import { fileURLToPath } from 'url';
 import cors from 'cors';
-import { FRONTEND_URL } from './config/env.js';
+import { CORS_ORIGINS, UPLOAD_ROOT } from './config/env.js';
 import { errorHandler } from './middleware/errorHandler.js';
 import authRoutes from './routes/authRoutes.js';
 import userRoutes from './routes/userRoutes.js';
@@ -16,15 +14,24 @@ import uploadRoutes from './routes/uploadRoutes.js';
 import offeringRoutes from './routes/offeringRoutes.js';
 import { webhook } from './controllers/stripeController.js';
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-
 const app = express();
 
-app.use(cors({ origin: FRONTEND_URL || true, credentials: true }));
+app.set('trust proxy', 1);
+
+app.use(
+  cors({
+    origin: (origin, callback) => {
+      if (!origin) return callback(null, true);
+      if (CORS_ORIGINS.includes(origin)) return callback(null, true);
+      return callback(new Error('Not allowed by CORS'));
+    },
+    credentials: true,
+  })
+);
 app.use(express.json({ limit: '10mb' }));
 
 // Serve uploaded files (profiles, etc.)
-app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
+app.use('/uploads', express.static(UPLOAD_ROOT));
 
 // Stripe webhook must receive raw body for signature verification
 app.post('/api/stripe/webhook', express.raw({ type: 'application/json' }), webhook);
