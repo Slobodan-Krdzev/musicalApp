@@ -12,9 +12,9 @@ import { createEventSchema, updateEventSchema, eventQuerySchema } from '../valid
 
 const router = Router();
 
-router.get('/', validate(eventQuerySchema, (req) => req.query), listEvents);
-router.get('/my', authenticate, requireVenue, getMyEvents);
-router.get('/:id', getEvent);
+router.get('/', authenticate, validate(eventQuerySchema, (req) => req.query), listEvents);
+router.get('/my', authenticate, getMyEvents);
+router.get('/:id', authenticate, getEvent);
 router.post('/', authenticate, requireVenue, validate(createEventSchema), createEvent);
 router.put('/:id', authenticate, requireVenue, validate(updateEventSchema), updateEvent);
 

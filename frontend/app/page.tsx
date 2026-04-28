@@ -22,7 +22,7 @@ export default function LandingPage() {
                   <span className="text-sm font-semibold text-white">G</span>
                 </div>
                 <span className="text-sm font-semibold tracking-tight text-zinc-100">
-                  GigMatch
+                  GigConnection
                 </span>
               </div>
               <div className="flex items-center gap-4 text-sm">
@@ -144,12 +144,12 @@ export default function LandingPage() {
             <h2 className="text-center text-4xl font-bold text-white sm:text-5xl">Simple, Transparent Pricing</h2>
             <p className="mt-3 text-center text-lg text-zinc-400">Unlock full access to the platform</p>
             <div className="mt-14 grid w-full gap-8 md:grid-cols-2">
-              {/* 6 Months */}
+              {/* Monthly */}
               <div className="relative rounded-2xl border border-zinc-800 bg-black/60 p-8">
-                <h3 className="text-xl font-bold text-white">6 Months</h3>
+                <h3 className="text-xl font-bold text-white">Monthly</h3>
                 <p className="mt-3 flex items-baseline gap-1.5">
-                  <span className="text-4xl font-bold text-white sm:text-5xl">$70</span>
-                  <span className="text-base text-zinc-400">/6 mo</span>
+                  <span className="text-4xl font-bold text-white sm:text-5xl">$9.99</span>
+                  <span className="text-base text-zinc-400">/mo</span>
                 </p>
                 <ul className="mt-8 space-y-4">
                   {['Unlimited booking requests', 'Profile visibility boost', 'Advanced analytics'].map((feature) => (
@@ -165,7 +165,7 @@ export default function LandingPage() {
                 </ul>
                 <Link href="/register" className="mt-10 block">
                   <Button variant="secondary" className="w-full rounded-xl border-violet-500/50 bg-zinc-900 py-3 text-base text-white hover:border-violet-400/50">
-                    Choose 6 Months
+                    Choose Monthly
                   </Button>
                 </Link>
               </div>
@@ -176,11 +176,11 @@ export default function LandingPage() {
                 </span>
                 <h3 className="text-xl font-bold text-violet-400">Yearly</h3>
                 <p className="mt-3 flex items-baseline gap-1.5">
-                  <span className="text-4xl font-bold text-white sm:text-5xl">$100</span>
+                  <span className="text-4xl font-bold text-white sm:text-5xl">$99.99</span>
                   <span className="text-base text-zinc-400">/yr</span>
                 </p>
                 <ul className="mt-8 space-y-4">
-                  {['Save $40 compared to 6-mo plan', 'All features included', 'Featured venue status'].map((feature) => (
+                  {['Save ~17% vs monthly plan', 'All features included', 'Featured venue status'].map((feature) => (
                     <li key={feature} className="flex items-center gap-3 text-base text-white">
                       <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-violet-500/20">
                         <svg className="h-3.5 w-3.5 text-violet-400" fill="currentColor" viewBox="0 0 20 20" aria-hidden>
@@ -229,7 +229,7 @@ export default function LandingPage() {
 
         {/* Footer */}
         <footer className="py-8 px-4 border-t border-zinc-800 text-center text-zinc-500 text-sm">
-          <p>GigMatch – Connect Musicians & Venues. Built for live music.</p>
+          <p>GigConnection – Connect Musicians & Venues. Built for live music.</p>
         </footer>
       </main>
     </div>

@@ -9,7 +9,7 @@ import { Card, CardHeader, CardContent } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 
-export default function CreateAdvertPage() {
+export default function CreateListingPage() {
   const router = useRouter();
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
@@ -49,8 +49,8 @@ export default function CreateAdvertPage() {
       </Link>
       <Card>
         <CardHeader>
-          <h1 className="text-xl font-semibold text-zinc-100">Create advert</h1>
-          <p className="text-sm text-zinc-400">Advertise that you're looking for gigs.</p>
+          <h1 className="text-xl font-semibold text-zinc-100">Create listing</h1>
+          <p className="text-sm text-zinc-400">Let venues know you&apos;re looking for gigs.</p>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
@@ -70,7 +70,7 @@ export default function CreateAdvertPage() {
             <Input label="Genres (comma-separated)" value={genre} onChange={(e) => setGenre(e.target.value)} placeholder="Rock, Indie" />
             <div className="flex gap-2">
               <Button type="submit" loading={create.isPending} disabled={!title.trim()}>
-                Create advert
+                Create listing
               </Button>
               <Link href="/dashboard">
                 <Button type="button" variant="ghost">Cancel</Button>

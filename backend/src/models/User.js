@@ -1,7 +1,7 @@
 import mongoose from 'mongoose';
 import bcrypt from 'bcryptjs';
+import crypto from 'crypto';
 
-/** User roles - used for RBAC middleware */
 export const ROLES = Object.freeze({
   MUSICIAN: 'MUSICIAN',
   VENUE: 'VENUE',
@@ -26,6 +26,10 @@ const userSchema = new mongoose.Schema(
       index: true,
     },
     isSuspended: { type: Boolean, default: false, index: true },
+    hasCompletedProfile: { type: Boolean, default: false },
+    isEmailVerified: { type: Boolean, default: false },
+    emailVerificationToken: { type: String, select: false },
+    emailVerificationExpires: { type: Date, select: false },
     refreshToken: { type: String, select: false },
   },
   { timestamps: true }
@@ -43,6 +47,21 @@ userSchema.pre('save', async function (next) {
 
 userSchema.methods.comparePassword = function (candidate) {
   return bcrypt.compare(candidate, this.password);
+};
+
+userSchema.methods.generateVerificationToken = function () {
+  const token = crypto.randomBytes(32).toString('hex');
+  this.emailVerificationToken = crypto.createHash('sha256').update(token).digest('hex');
+  this.emailVerificationExpires = new Date(Date.now() + 24 * 60 * 60 * 1000);
+  return token;
+};
+
+userSchema.statics.findByVerificationToken = function (rawToken) {
+  const hashed = crypto.createHash('sha256').update(rawToken).digest('hex');
+  return this.findOne({
+    emailVerificationToken: hashed,
+    emailVerificationExpires: { $gt: new Date() },
+  }).select('+emailVerificationToken +emailVerificationExpires');
 };
 
 export const User = mongoose.model('User', userSchema);

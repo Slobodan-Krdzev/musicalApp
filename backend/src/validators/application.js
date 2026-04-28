@@ -1,7 +1,16 @@
 import { z } from 'zod';
 
-export const createApplicationSchema = z.object({
-  eventId: z.string().refine((id) => /^[a-f\d]{24}$/i.test(id), 'Invalid event ID'),
+const objectId = z.string().refine((id) => /^[a-f\d]{24}$/i.test(id), 'Invalid ID');
+
+export const applyToEventSchema = z.object({
+  eventId: objectId,
+  quote: z.number().min(0).optional(),
+  message: z.string().max(2000).optional(),
+}).strict();
+
+export const applyToOfferingSchema = z.object({
+  offeringId: objectId,
+  quote: z.number().min(0).optional(),
   message: z.string().max(2000).optional(),
 }).strict();
 

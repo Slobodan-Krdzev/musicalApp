@@ -6,7 +6,7 @@ import { Providers } from '@/components/Providers';
 const inter = Inter({ subsets: ['latin'], variable: '--font-sans' });
 
 export const metadata: Metadata = {
-  title: 'GigMatch – Connect Musicians & Venues',
+  title: 'GigConnection – Connect Musicians & Venues',
   description: 'Arrange live events and gigs. Musicians find venues, venues find artists.',
 };
 

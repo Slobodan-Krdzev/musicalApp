@@ -53,7 +53,7 @@ export function useAuth() {
 
   const logout = () => {
     clearTokens();
-    queryClient.setQueryData(['auth'], null);
+    queryClient.clear();
     router.push('/');
   };
 

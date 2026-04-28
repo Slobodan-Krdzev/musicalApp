@@ -2,12 +2,11 @@ import { User } from '../models/index.js';
 import { signAccessToken, signRefreshToken, verifyRefreshToken } from '../utils/jwt.js';
 import { ValidationError } from '../utils/errors.js';
 import { Subscription, PLAN_IDS } from '../models/index.js';
+import { MusicianProfile, VenueProfile } from '../models/index.js';
+import { emailService } from '../services/emailService.js';
 
 const TRIAL_DAYS = 14;
 
-/**
- * Register: create user + optional free trial subscription.
- */
 export async function register(req, res, next) {
   try {
     const { email, password, role } = req.validated;
@@ -16,7 +15,6 @@ export async function register(req, res, next) {
 
     const user = await User.create({ email, password, role });
 
-    // Start free trial for non-superadmin
     if (role !== 'SUPERADMIN') {
       const trialEnd = new Date();
       trialEnd.setDate(trialEnd.getDate() + TRIAL_DAYS);
@@ -49,9 +47,6 @@ export async function register(req, res, next) {
   }
 }
 
-/**
- * Login: validate credentials, return tokens.
- */
 export async function login(req, res, next) {
   try {
     const { email, password } = req.validated;
@@ -81,9 +76,6 @@ export async function login(req, res, next) {
   }
 }
 
-/**
- * Refresh: exchange refresh token for new access (and optionally refresh) token.
- */
 export async function refresh(req, res, next) {
   try {
     const { refreshToken: token } = req.validated;
@@ -106,12 +98,58 @@ export async function refresh(req, res, next) {
   }
 }
 
-/**
- * Me: return current user (requires auth).
- */
 export async function me(req, res, next) {
   try {
     res.json({ success: true, user: req.user });
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function verifyEmail(req, res, next) {
+  try {
+    const { token } = req.query;
+    if (!token) throw new ValidationError('Verification token required');
+
+    const user = await User.findByVerificationToken(token);
+    if (!user) throw new ValidationError('Invalid or expired verification token');
+
+    user.isEmailVerified = true;
+    user.emailVerificationToken = undefined;
+    user.emailVerificationExpires = undefined;
+    await user.save();
+
+    let profileName = '';
+    if (user.role === 'MUSICIAN') {
+      const p = await MusicianProfile.findOne({ userId: user._id });
+      profileName = p?.bandName || '';
+    } else if (user.role === 'VENUE') {
+      const p = await VenueProfile.findOne({ userId: user._id });
+      profileName = p?.venueName || '';
+    }
+
+    await emailService.sendProfileVerifiedEmail(user.email, profileName);
+
+    res.json({ success: true, message: 'Email verified successfully' });
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function resendVerification(req, res, next) {
+  try {
+    const userId = req.user._id;
+    const user = await User.findById(userId).select('+emailVerificationToken +emailVerificationExpires');
+    if (!user) throw new ValidationError('User not found');
+    if (user.isEmailVerified) {
+      return res.json({ success: true, message: 'Email already verified' });
+    }
+
+    const rawToken = user.generateVerificationToken();
+    await user.save();
+    await emailService.sendVerificationEmail(user.email, rawToken);
+
+    res.json({ success: true, message: 'Verification email sent' });
   } catch (err) {
     next(err);
   }

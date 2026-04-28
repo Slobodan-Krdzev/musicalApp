@@ -6,7 +6,8 @@
     "dev": "node --watch src/index.js",
     "start": "node dist/index.js",
     "build": "tsc || true",
-    "seed": "node src/scripts/seed.js"
+    "seed": "node src/scripts/seed.js",
+    "resetdb": "node src/scripts/resetDB.js"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",
@@ -16,6 +17,8 @@
     "express-rate-limit": "^7.1.5",
     "jsonwebtoken": "^9.0.2",
     "mongoose": "^8.3.2",
+    "nodemailer": "^8.0.5",
+    "resend": "^4.0.0",
     "stripe": "^14.14.0",
     "zod": "^3.23.8"
   },

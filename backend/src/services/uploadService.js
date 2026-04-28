@@ -1,6 +1,7 @@
 import path from 'path';
 import fs from 'fs/promises';
 import { fileURLToPath } from 'url';
+import { APP_URL } from '../config/env.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -36,7 +37,7 @@ export const uploadService = {
   },
 
   getBaseUrl() {
-    return process.env.APP_URL || 'http://localhost:4000';
+    return APP_URL;
   },
 
   /** Full URL for a stored path */

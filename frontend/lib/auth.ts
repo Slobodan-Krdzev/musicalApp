@@ -1,8 +1,3 @@
-/**
- * Client-side auth: store access + refresh in memory and optionally localStorage
- * for persistence. Next.js API routes can proxy to backend with token.
- */
-
 const ACCESS_KEY = 'gigmatch_access';
 const REFRESH_KEY = 'gigmatch_refresh';
 
@@ -11,6 +6,8 @@ export type User = {
   email: string;
   role: 'MUSICIAN' | 'VENUE' | 'SUPERADMIN';
   isSuspended?: boolean;
+  hasCompletedProfile?: boolean;
+  isEmailVerified?: boolean;
 };
 
 export function setTokens(access: string, refresh: string) {

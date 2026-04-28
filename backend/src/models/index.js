@@ -2,6 +2,7 @@ export { User, ROLES } from './User.js';
 export { MusicianProfile } from './MusicianProfile.js';
 export { VenueProfile } from './VenueProfile.js';
 export { Event } from './Event.js';
+export { Offering } from './Offering.js';
 export { Advert } from './Advert.js';
 export { Application } from './Application.js';
 export { Deal } from './Deal.js';

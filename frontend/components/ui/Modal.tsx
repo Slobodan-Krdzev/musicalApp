@@ -1,6 +1,7 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { cn } from '@/lib/cn';
 
 type ModalProps = {
@@ -12,6 +13,12 @@ type ModalProps = {
 };
 
 export function Modal({ open, onClose, title, children, className }: ModalProps) {
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
   useEffect(() => {
     if (!open) return;
     const handle = (e: KeyboardEvent) => e.key === 'Escape' && onClose();
@@ -23,17 +30,17 @@ export function Modal({ open, onClose, title, children, className }: ModalProps)
     };
   }, [open, onClose]);
 
-  if (!open) return null;
+  if (!open || !mounted) return null;
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-black/60" onClick={onClose} aria-hidden />
+  const content = (
+    <div className="fixed inset-0 z-[9999] flex items-start justify-center p-4 pt-[5vh] overflow-y-auto">
+      <div className="fixed inset-0 bg-black/60" onClick={onClose} aria-hidden />
       <div
         role="dialog"
         aria-modal
         aria-labelledby={title ? 'modal-title' : undefined}
         className={cn(
-          'relative w-full max-w-md rounded-xl bg-zinc-900 border border-zinc-800 shadow-xl',
+          'relative w-full max-w-md rounded-xl bg-zinc-900 border border-zinc-800 shadow-xl mb-8',
           className
         )}
         onClick={(e) => e.stopPropagation()}
@@ -53,8 +60,10 @@ export function Modal({ open, onClose, title, children, className }: ModalProps)
             </button>
           </div>
         )}
-        <div className="p-4">{children}</div>
+        <div className="p-4 max-h-[80vh] overflow-y-auto">{children}</div>
       </div>
     </div>
   );
+
+  return createPortal(content, document.body);
 }
