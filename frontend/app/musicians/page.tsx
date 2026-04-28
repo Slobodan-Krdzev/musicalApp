@@ -114,21 +114,21 @@ export default function DirectoryPage() {
             <div className="flex items-center gap-2">
               <Button
                 size="sm"
-                variant={filterType === 'ALL' ? 'default' : 'ghost'}
+                variant={filterType === 'ALL' ? 'primary' : 'ghost'}
                 onClick={() => setFilterType('ALL')}
               >
                 All
               </Button>
               <Button
                 size="sm"
-                variant={filterType === 'MUSICIAN' ? 'default' : 'ghost'}
+                variant={filterType === 'MUSICIAN' ? 'primary' : 'ghost'}
                 onClick={() => setFilterType('MUSICIAN')}
               >
                 Musicians
               </Button>
               <Button
                 size="sm"
-                variant={filterType === 'VENUE' ? 'default' : 'ghost'}
+                variant={filterType === 'VENUE' ? 'primary' : 'ghost'}
                 onClick={() => setFilterType('VENUE')}
               >
                 Venues
@@ -177,12 +177,14 @@ export default function DirectoryPage() {
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center justify-between gap-2 mb-1">
                           <h2 className="font-semibold text-zinc-100 truncate">{item.name}</h2>
-                          <Badge variant="outline">{item.type === 'MUSICIAN' ? 'Musician' : 'Venue'}</Badge>
+                          <Badge variant={item.type === 'MUSICIAN' ? 'success' : 'warning'}>
+                            {item.type === 'MUSICIAN' ? 'Musician' : 'Venue'}
+                          </Badge>
                         </div>
                         {item.interests && item.interests.length > 0 && (
                           <div className="flex flex-wrap gap-1 mb-1">
                             {item.interests.slice(0, 3).map((tag) => (
-                              <Badge key={tag} variant="secondary">
+                              <Badge key={tag} variant="default">
                                 {tag}
                               </Badge>
                             ))}

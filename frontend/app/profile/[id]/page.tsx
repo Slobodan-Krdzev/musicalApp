@@ -127,7 +127,7 @@ export default function ProfilePage() {
                 <h1 className="text-3xl font-semibold text-zinc-50">
                   {isMusician ? profile?.bandName || 'Musician' : profile?.venueName || 'Venue'}
                 </h1>
-                <Badge variant="outline" className="uppercase tracking-wide text-xs">
+                <Badge variant="default" className="uppercase tracking-wide text-xs">
                   {data.user.role}
                 </Badge>
               </div>
@@ -174,19 +174,19 @@ export default function ProfilePage() {
               </h2>
               <div className="flex flex-wrap gap-2">
                 {profile?.interests?.map((tag) => (
-                  <Badge key={tag} variant="secondary">
+                  <Badge key={tag} variant="default">
                     {tag}
                   </Badge>
                 ))}
                 {!profile?.interests?.length &&
                   (profile as MusicianProfile).genres?.map((g) => (
-                    <Badge key={g} variant="secondary">
+                    <Badge key={g} variant="default">
                       {g}
                     </Badge>
                   ))}
                 {!profile?.interests?.length &&
                   (profile as VenueProfile).gigTypes?.map((g) => (
-                    <Badge key={g} variant="secondary">
+                    <Badge key={g} variant="default">
                       {g}
                     </Badge>
                   ))}
