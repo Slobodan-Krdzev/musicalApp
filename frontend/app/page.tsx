@@ -51,7 +51,7 @@ export default function LandingPage() {
                   href="/register?role=VENUE"
                   className={cn(
                     'inline-flex w-full min-w-0 items-center justify-center rounded-full bg-zinc-100 px-6 py-3 text-base font-medium text-zinc-900 transition-colors',
-                    'hover:bg-zinc-200 focus:outline-none focus:ring-2 focus:ring-zinc-400 focus:ring-offset-2 focus:ring-offset-zinc-950 sm:min-w-[180px]'
+                    'hover:bg-zinc-200 focus:outline-none focus:ring-2 focus:ring-zinc-400 focus:ring-offset-2 focus:ring-offset-zinc-950 sm:min-w-[180px] sm:whitespace-nowrap'
                   )}
                 >
                   I&apos;m a Venue Owner
