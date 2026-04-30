@@ -1,10 +1,13 @@
 import Link from 'next/link';
 import frontHero from '@/frontHero.png';
-import { Button } from '@/components/ui/Button';
+import { UnderDevelopmentModal } from '@/components/UnderDevelopmentModal';
+import { PublicNavbar } from '@/components/PublicNavbar';
+import { cn } from '@/lib/cn';
 
 export default function LandingPage() {
   return (
     <div className="min-h-screen flex flex-col bg-zinc-950 text-[15px] sm:text-base">
+      <UnderDevelopmentModal />
       <main className="flex-1">
         {/* Hero */}
         <section
@@ -15,86 +18,63 @@ export default function LandingPage() {
           <div className="pointer-events-none absolute inset-0 z-10 bg-black/65" />
           <div className="pointer-events-none absolute inset-0 -z-20 bg-gradient-to-b from-zinc-950/80 via-zinc-950/60 to-zinc-950" />
 
-          <header className="relative z-10 border-b border-zinc-800/60 bg-zinc-950/50 backdrop-blur">
-            <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-6 lg:px-8">
-              <div className="flex items-center gap-2">
-                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-br from-indigo-500 to-fuchsia-500">
-                  <span className="text-sm font-semibold text-white">G</span>
-                </div>
-                <span className="text-sm font-semibold tracking-tight text-zinc-100">
-                  GigConnection
-                </span>
-              </div>
-              <div className="flex items-center gap-4 text-sm">
-                <Link href="/login" className="text-zinc-400 hover:text-zinc-100">
-                  Log in
-                </Link>
-                <Link href="/register">
-                  <Button
-                    size="sm"
-                    className="bg-gradient-to-r from-indigo-500 to-fuchsia-500 text-zinc-50 hover:from-indigo-400 hover:to-fuchsia-400"
-                  >
-                    Get Started
-                  </Button>
-                </Link>
-              </div>
-            </div>
-          </header>
+          <PublicNavbar />
 
           <div className="relative z-10 flex flex-1">
-            <div className="mx-auto flex max-w-6xl flex-col items-center justify-center px-6 pb-20 pt-16 text-center lg:px-8 lg:pt-20">
-            <span className="mb-4 inline-flex items-center rounded-full border border-zinc-800 bg-zinc-900/60 px-3 py-1 text-xs font-medium uppercase tracking-wide text-zinc-400">
-              <span className="mr-2 h-1.5 w-1.5 rounded-full bg-indigo-400" />
-              The #1 Platform for Live Music
-            </span>
-
-            <h1 className="max-w-3xl text-balance text-4xl font-bold tracking-tight text-zinc-50 sm:text-5xl lg:text-7xl">
-              Book the Perfect{' '}
-              <span className="bg-gradient-to-r from-indigo-400 via-sky-400 to-fuchsia-400 bg-clip-text text-transparent">
-                Gig
+            <div className="mx-auto flex max-w-6xl flex-col items-center justify-center px-4 pb-16 pt-12 text-center sm:px-6 sm:pb-20 sm:pt-16 lg:px-8 lg:pt-20">
+              <span className="mb-4 inline-flex items-center rounded-full border border-zinc-800 bg-zinc-900/60 px-3 py-1 text-xs font-medium uppercase tracking-wide text-zinc-400">
+                <span className="mr-2 h-1.5 w-1.5 rounded-full bg-indigo-400" />
+                The #1 Platform for Live Music
               </span>
-              .
-              <br />
-              Fill Your{' '}
-              <span className="bg-gradient-to-r from-fuchsia-400 via-violet-400 to-indigo-400 bg-clip-text text-transparent">
-                Venue
-              </span>
-              .
-            </h1>
 
-            <p className="mt-6 max-w-xl text-balance text-sm leading-relaxed text-zinc-400 sm:text-base">
-              Connect top-tier local talent with premium venues. Streamlined booking, secure payments,
-              and zero hassle.
-            </p>
+              <h1 className="max-w-3xl text-balance text-4xl font-bold tracking-tight text-zinc-50 sm:text-5xl lg:text-7xl">
+                Book the Perfect{' '}
+                <span className="bg-gradient-to-r from-indigo-400 via-sky-400 to-fuchsia-400 bg-clip-text text-transparent">
+                  Gig
+                </span>
+                .
+                <br />
+                Fill Your{' '}
+                <span className="bg-gradient-to-r from-fuchsia-400 via-violet-400 to-indigo-400 bg-clip-text text-transparent">
+                  Venue
+                </span>
+                .
+              </h1>
 
-            <div className="mt-10 flex flex-wrap items-center justify-center gap-4">
-              <Link href="/register?role=VENUE">
-                <Button
-                  size="lg"
-                  className="min-w-[180px] rounded-full bg-zinc-100 text-zinc-900 hover:bg-zinc-200"
+              <p className="mt-6 max-w-xl text-balance text-sm leading-relaxed text-zinc-400 sm:text-base">
+                Connect top-tier local talent with premium venues. Streamlined booking, secure payments,
+                and zero hassle.
+              </p>
+
+              <div className="mt-10 flex w-full flex-col items-center justify-center gap-3 sm:w-auto sm:flex-row sm:gap-4">
+                <Link
+                  href="/register?role=VENUE"
+                  className={cn(
+                    'inline-flex w-full min-w-0 items-center justify-center rounded-full bg-zinc-100 px-6 py-3 text-base font-medium text-zinc-900 transition-colors',
+                    'hover:bg-zinc-200 focus:outline-none focus:ring-2 focus:ring-zinc-400 focus:ring-offset-2 focus:ring-offset-zinc-950 sm:min-w-[180px]'
+                  )}
                 >
                   I&apos;m a Venue Owner
-                </Button>
-              </Link>
-              <Link href="/register?role=MUSICIAN">
-                <Button
-                  size="lg"
-                  variant="ghost"
-                  className="min-w-[180px] rounded-full border border-zinc-700 bg-zinc-900/60 text-zinc-100 hover:border-zinc-500 hover:bg-zinc-800"
-                  >
+                </Link>
+                <Link
+                  href="/register?role=MUSICIAN"
+                  className={cn(
+                    'inline-flex w-full min-w-0 items-center justify-center rounded-full border border-zinc-700 bg-zinc-900/60 px-6 py-3 text-base font-medium text-zinc-100 transition-colors',
+                    'hover:border-zinc-500 hover:bg-zinc-800 focus:outline-none focus:ring-2 focus:ring-zinc-500 focus:ring-offset-2 focus:ring-offset-zinc-950 sm:min-w-[180px]'
+                  )}
+                >
                   I&apos;m a Musician
-                </Button>
-              </Link>
-            </div>
+                </Link>
+              </div>
             </div>
           </div>
         </section>
 
         {/* Feature cards - For Venues, For Bands, Smart Booking */}
-        <section className="bg-black py-20 px-4 h-[80dvh] flex items-center justify-center">
+        <section className="bg-black px-4 py-16 sm:py-20">
           <div className="mx-auto max-w-6xl">
             <div className="grid gap-6 md:grid-cols-3">
-              <div className="rounded-2xl border border-zinc-800/80 bg-black p-6 text-left hover:border-violet-500/50">
+              <div className="rounded-2xl border border-zinc-800/80 bg-black p-6 text-left transition-colors hover:border-violet-500/50">
                 <div className="mb-4 inline-flex h-11 w-11 items-center justify-center rounded-xl bg-violet-500/20 text-violet-400">
                   <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5} aria-hidden>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 21v-7.5a.75.75 0 01.75-.75h3a.75.75 0 01.75.75V21m-4.5 0H2.36m11.14 0H18m0 0h3.64m-1.39 0V9.349m-16.5 11.65V9.35m0 0a3.001 3.001 0 003.75-.615A2.993 2.993 0 009.75 9.75c.896 0 1.7-.393 2.25-1.016a2.993 2.993 0 002.25 1.016c.896 0 1.7-.393 2.25-1.016a3.001 3.001 0 003.75.614m-16.5 0a3.004 3.004 0 01-.621-4.72L4.318 3.44A1.5 1.5 0 015.378 3h13.243a1.5 1.5 0 011.06.44l1.19 1.189a3 3 0 01-.621 4.72m-13.5 8.65h3.75a.75.75 0 00.75-.75V13.5a.75.75 0 00-.75-.75H6.75a.75.75 0 00-.75.75v3.75c0 .415.336.75.75.75z" />
@@ -105,7 +85,7 @@ export default function LandingPage() {
                   Manage your entertainment calendar effortlessly. Find bands that match your vibe and budget.
                 </p>
               </div>
-              <div className="rounded-2xl border border-zinc-800/80 bg-black p-6 text-left hover:border-violet-500/50">
+              <div className="rounded-2xl border border-zinc-800/80 bg-black p-6 text-left transition-colors hover:border-violet-500/50">
                 <div className="mb-4 inline-flex h-11 w-11 items-center justify-center rounded-xl bg-violet-500/20 text-violet-400">
                   <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5} aria-hidden>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M9 9l10.5-3m0 6.553v3.75a2.25 2.25 0 01-1.632 2.163l-1.32.377a1.803 1.803 0 11-.99-3.467l2.31-.66a2.25 2.25 0 001.632-2.163zm0 0V2.25L9 5.25v10.303m0 0v3.75a2.25 2.25 0 01-1.632 2.163l-1.32.377a1.803 1.803 0 01-.99-3.467l2.31-.66A2.25 2.25 0 009 15.553z" />
@@ -116,7 +96,7 @@ export default function LandingPage() {
                   Stop cold-calling. Browse available slots at top venues and book gigs instantly.
                 </p>
               </div>
-              <div className="rounded-2xl border border-zinc-800/80 bg-black p-6 text-left hover:border-violet-500/50">
+              <div className="rounded-2xl border border-zinc-800/80 bg-black p-6 text-left transition-colors hover:border-violet-500/50">
                 <div className="mb-4 inline-flex h-11 w-11 items-center justify-center rounded-xl bg-violet-500/20 text-violet-400">
                   <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5} aria-hidden>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5m-9-6v.008M12 15v.008M12 12v.008M9 15v.008M9 12v.008M15 12v.008" />
@@ -132,7 +112,7 @@ export default function LandingPage() {
         </section>
 
         {/* Simple, Transparent Pricing */}
-        <section className="relative flex min-h-[100dvh] flex-col items-center justify-center overflow-hidden px-4 py-20">
+        <section className="relative flex flex-col items-center justify-center overflow-hidden px-4 py-16 sm:py-20">
           {/* Radial gradient: brightest at center, darker toward edges */}
           <div
             className="pointer-events-none absolute inset-0"
@@ -141,11 +121,11 @@ export default function LandingPage() {
             }}
           />
           <div className="relative z-10 mx-auto flex w-full max-w-4xl flex-col items-center justify-center">
-            <h2 className="text-center text-4xl font-bold text-white sm:text-5xl">Simple, Transparent Pricing</h2>
-            <p className="mt-3 text-center text-lg text-zinc-400">Unlock full access to the platform</p>
-            <div className="mt-14 grid w-full gap-8 md:grid-cols-2">
+            <h2 className="text-center text-3xl font-bold text-white sm:text-4xl lg:text-5xl">Simple, Transparent Pricing</h2>
+            <p className="mt-3 text-center text-base text-zinc-400 sm:text-lg">Unlock full access to the platform</p>
+            <div className="mt-10 grid w-full gap-6 sm:mt-14 sm:gap-8 md:grid-cols-2">
               {/* Monthly */}
-              <div className="relative rounded-2xl border border-zinc-800 bg-black/60 p-8">
+              <div className="relative rounded-2xl border border-zinc-800 bg-black/60 p-6 sm:p-8">
                 <h3 className="text-xl font-bold text-white">Monthly</h3>
                 <p className="mt-3 flex items-baseline gap-1.5">
                   <span className="text-4xl font-bold text-white sm:text-5xl">$9.99</span>
@@ -163,14 +143,18 @@ export default function LandingPage() {
                     </li>
                   ))}
                 </ul>
-                <Link href="/register" className="mt-10 block">
-                  <Button variant="secondary" className="w-full rounded-xl border-violet-500/50 bg-zinc-900 py-3 text-base text-white hover:border-violet-400/50">
-                    Choose Monthly
-                  </Button>
+                <Link
+                  href="/register"
+                  className={cn(
+                    'mt-10 inline-flex w-full items-center justify-center rounded-xl border border-violet-500/50 bg-zinc-900 py-3 text-base font-medium text-white transition-colors',
+                    'hover:border-violet-400/50 focus:outline-none focus:ring-2 focus:ring-violet-500 focus:ring-offset-2 focus:ring-offset-zinc-950'
+                  )}
+                >
+                  Choose Monthly
                 </Link>
               </div>
               {/* Yearly - Best value */}
-              <div className="relative rounded-2xl border border-violet-500/40 bg-black/60 p-8">
+              <div className="relative rounded-2xl border border-violet-500/40 bg-black/60 p-6 sm:p-8">
                 <span className="absolute -top-3 right-4 rounded-full bg-violet-500 px-3 py-1.5 text-sm font-semibold uppercase tracking-wide text-white">
                   Best value
                 </span>
@@ -191,10 +175,14 @@ export default function LandingPage() {
                     </li>
                   ))}
                 </ul>
-                <Link href="/register" className="mt-10 block">
-                  <Button className="w-full rounded-xl bg-violet-500 py-3 text-base text-white hover:bg-violet-400">
-                    Choose Yearly
-                  </Button>
+                <Link
+                  href="/register"
+                  className={cn(
+                    'mt-10 inline-flex w-full items-center justify-center rounded-xl bg-violet-500 py-3 text-base font-medium text-white transition-colors',
+                    'hover:bg-violet-400 focus:outline-none focus:ring-2 focus:ring-violet-400 focus:ring-offset-2 focus:ring-offset-zinc-950'
+                  )}
+                >
+                  Choose Yearly
                 </Link>
               </div>
             </div>
@@ -213,15 +201,23 @@ export default function LandingPage() {
             <h2 className="text-3xl font-bold text-white sm:text-4xl">Ready to get started?</h2>
             <p className="mt-3 text-zinc-400">Join as a Musician or Venue and connect in minutes.</p>
             <div className="mt-8 flex flex-wrap items-center justify-center gap-4">
-              <Link href="/register">
-                <Button size="lg" className="rounded-full bg-white px-8 text-violet-500 hover:bg-violet-400/10">
-                  Create account
-                </Button>
+              <Link
+                href="/register"
+                className={cn(
+                  'inline-flex items-center justify-center rounded-full bg-white px-8 py-3 text-base font-medium text-violet-500 transition-colors',
+                  'hover:bg-violet-400/10 focus:outline-none focus:ring-2 focus:ring-white focus:ring-offset-2 focus:ring-offset-zinc-950'
+                )}
+              >
+                Create account
               </Link>
-              <Link href="/events">
-                <Button size="lg" variant="ghost" className="rounded-full border border-zinc-600 text-zinc-300 hover:border-zinc-500 hover:bg-zinc-800/50">
-                  Browse events
-                </Button>
+              <Link
+                href="/events"
+                className={cn(
+                  'inline-flex items-center justify-center rounded-full border border-zinc-600 px-8 py-3 text-base font-medium text-zinc-300 transition-colors',
+                  'hover:border-zinc-500 hover:bg-zinc-800/50 focus:outline-none focus:ring-2 focus:ring-zinc-500 focus:ring-offset-2 focus:ring-offset-zinc-950'
+                )}
+              >
+                Browse events
               </Link>
             </div>
           </div>
