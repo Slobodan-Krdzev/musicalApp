@@ -50,8 +50,8 @@ export default function FinalizeApplicationPage() {
   if (!user) return null;
 
   return (
-    <div className="min-h-screen flex flex-col bg-zinc-950"><Header />
-      <main className="flex-1 container mx-auto px-4 py-8 max-w-3xl">
+    <div className="flex min-h-screen flex-col bg-zinc-950"><Header />
+      <main className="mx-auto w-full max-w-3xl flex-1 px-3 py-6 sm:px-4 sm:py-8">
         {isLoading ? (
           <div className="space-y-4"><div className="h-8 bg-zinc-800 rounded w-1/2 animate-pulse" /><div className="h-64 bg-zinc-800 rounded animate-pulse" /></div>
         ) : !app ? (
@@ -68,8 +68,8 @@ export default function FinalizeApplicationPage() {
               Back
             </button>
 
-            <div className="flex items-center gap-3 flex-wrap">
-              <h1 className="text-2xl font-bold text-zinc-100">{isFinalized ? 'Deal Complete' : 'Finalize Deal'}</h1>
+            <div className="flex flex-wrap items-center gap-3">
+              <h1 className="text-xl sm:text-2xl font-bold text-zinc-100">{isFinalized ? 'Deal Complete' : 'Finalize Deal'}</h1>
               <Badge variant={isFinalized ? 'success' : 'warning'}>{isFinalized ? 'FINALIZED' : 'ACCEPTED'}</Badge>
             </div>
 
@@ -78,7 +78,7 @@ export default function FinalizeApplicationPage() {
               <CardHeader><h2 className="text-lg font-semibold text-zinc-100">{isEvent ? 'Event' : 'Offering'}: {entity?.title}</h2></CardHeader>
               <CardContent className="space-y-3">
                 {entity?.description && <p className="text-zinc-400 text-sm whitespace-pre-wrap">{entity.description}</p>}
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                   {entity?.date && <InfoBox label="Date" value={new Date(entity.date).toLocaleDateString(undefined, { weekday: 'short', month: 'long', day: 'numeric', year: 'numeric' })} />}
                   {deal?.agreedQuote != null && <InfoBox label="Agreed Quote" value={`€${deal.agreedQuote}`} />}
                 </div>

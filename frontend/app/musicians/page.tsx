@@ -100,18 +100,18 @@ export default function DirectoryPage() {
       : musiciansData?.pagination?.pages || 1;
 
   return (
-    <div className="min-h-screen flex flex-col">
+    <div className="flex min-h-screen flex-col">
       <Header />
-      <main className="flex-1 container mx-auto px-4 py-8">
-        <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-4 mb-6">
+      <main className="mx-auto w-full max-w-7xl flex-1 px-3 py-6 sm:px-4 sm:py-8 lg:px-8">
+        <div className="mb-6 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
           <div>
-            <h1 className="text-2xl font-bold text-zinc-100 mb-1">Browse Musicians & Venues</h1>
+            <h1 className="text-xl sm:text-2xl font-bold text-zinc-100 mb-1">Browse Musicians & Venues</h1>
             <p className="text-zinc-400 text-sm">
               Discover artists and venues and open their profile pages.
             </p>
           </div>
-          <div className="flex flex-col sm:flex-row gap-3">
-            <div className="flex items-center gap-2">
+          <div className="flex flex-col gap-3 lg:flex-row">
+            <div className="flex flex-wrap items-center gap-2">
               <Button
                 size="sm"
                 variant={filterType === 'ALL' ? 'primary' : 'ghost'}
@@ -134,7 +134,7 @@ export default function DirectoryPage() {
                 Venues
               </Button>
             </div>
-            <div className="min-w-[200px]">
+            <div className="w-full sm:min-w-[200px]">
               <Input
                 label="Filter by genre (musicians)"
                 placeholder="e.g. Rock"
@@ -146,14 +146,14 @@ export default function DirectoryPage() {
         </div>
 
         {isLoading ? (
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {[1, 2, 3, 4, 5, 6].map((i) => (
               <Card key={i} className="h-32 animate-pulse" />
             ))}
           </div>
         ) : (
           <>
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
               {items.map((item) => (
                 <Link key={`${item.type}-${item.id}`} href={`/profile/${item.id}`}>
                   <Card className="hover:border-violet-500/50 transition-colors cursor-pointer h-full">

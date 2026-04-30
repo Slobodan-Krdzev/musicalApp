@@ -57,9 +57,9 @@ export default function EventDetailPage() {
 
   if (!id) {
     return (
-      <div className="min-h-screen flex flex-col">
+      <div className="flex min-h-screen flex-col">
         <Header />
-        <main className="flex-1 container mx-auto px-4 py-8">
+        <main className="mx-auto w-full max-w-7xl flex-1 px-3 py-6 sm:px-4 sm:py-8 lg:px-8">
           <p className="text-zinc-400">Invalid event.</p>
         </main>
       </div>
@@ -67,13 +67,13 @@ export default function EventDetailPage() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col">
+    <div className="flex min-h-screen flex-col">
       <Header />
-      <main className="flex-1 container mx-auto px-4 py-8">
+      <main className="mx-auto w-full max-w-7xl flex-1 px-3 py-6 sm:px-4 sm:py-8 lg:px-8">
         {isLoading ? (
           <div className="animate-pulse h-64 rounded-xl bg-zinc-800" />
         ) : data?.event ? (
-          <div className="max-w-2xl mx-auto space-y-6">
+          <div className="mx-auto max-w-2xl space-y-6">
             <Link href="/events" className="text-violet-400 hover:underline text-sm">
               ← Back to events
             </Link>

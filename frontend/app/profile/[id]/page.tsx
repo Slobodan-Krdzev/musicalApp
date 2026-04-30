@@ -6,8 +6,7 @@ import { useParams } from 'next/navigation';
 import { useQuery } from '@tanstack/react-query';
 import { apiRequest } from '@/lib/api';
 import { Header } from '@/components/Layout/Header';
-import { Card, CardHeader, CardContent } from '@/components/ui/Card';
-import { Button } from '@/components/ui/Button';
+import { Card, CardContent } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
 
 type MusicianProfile = {
@@ -101,12 +100,12 @@ export default function ProfilePage() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col">
+    <div className="flex min-h-screen flex-col">
       <Header />
-      <main className="flex-1 container mx-auto px-4 py-10">
-        <div className="max-w-5xl mx-auto space-y-8">
-          <section className="flex flex-col md:flex-row md:items-center gap-6">
-            <div className="w-28 h-28 rounded-2xl bg-gradient-to-br from-violet-600/60 to-fuchsia-500/40 flex items-center justify-center overflow-hidden border border-violet-500/40 shadow-lg shadow-violet-500/20">
+      <main className="mx-auto w-full max-w-7xl flex-1 px-3 py-6 sm:px-4 sm:py-10 lg:px-8">
+        <div className="mx-auto max-w-5xl space-y-8">
+          <section className="flex flex-col gap-6 sm:flex-row sm:items-center">
+            <div className="mx-auto h-28 w-28 flex-shrink-0 overflow-hidden rounded-2xl border border-violet-500/40 bg-gradient-to-br from-violet-600/60 to-fuchsia-500/40 shadow-lg shadow-violet-500/20 flex items-center justify-center sm:mx-0">
               {profile?.avatarUrl ? (
                 <Image
                   src={profile.avatarUrl}
@@ -122,9 +121,9 @@ export default function ProfilePage() {
                 </span>
               )}
             </div>
-            <div className="flex-1 space-y-3">
-              <div className="flex items-center gap-3 flex-wrap">
-                <h1 className="text-3xl font-semibold text-zinc-50">
+            <div className="flex-1 space-y-3 text-center sm:text-left">
+              <div className="flex flex-wrap items-center justify-center gap-3 sm:justify-start">
+                <h1 className="text-2xl sm:text-3xl font-semibold text-zinc-50">
                   {isMusician ? profile?.bandName || 'Musician' : profile?.venueName || 'Venue'}
                 </h1>
                 <Badge variant="default" className="uppercase tracking-wide text-xs">
@@ -136,7 +135,7 @@ export default function ProfilePage() {
                   ? profile?.bio || 'No description provided yet.'
                   : profile?.description || 'No description provided yet.'}
               </p>
-              <div className="flex flex-wrap gap-3 text-sm text-zinc-400">
+              <div className="flex flex-wrap justify-center gap-3 text-sm text-zinc-400 sm:justify-start">
                 {profile?.location && (
                   <span>
                     {('city' in profile.location && profile.location.city) || ''}
@@ -159,9 +158,12 @@ export default function ProfilePage() {
                   </a>
                 )}
               </div>
-              <div>
-                <Link href={`/profile/${id}/contact`}>
-                  <Button size="sm">Contact</Button>
+              <div className="flex justify-center sm:justify-start">
+                <Link
+                  href={`/profile/${id}/contact`}
+                  className="inline-flex items-center justify-center rounded-lg bg-violet-500 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-violet-400 focus:outline-none focus:ring-2 focus:ring-violet-500 focus:ring-offset-2 focus:ring-offset-zinc-900"
+                >
+                  Contact
                 </Link>
               </div>
             </div>
@@ -224,10 +226,11 @@ export default function ProfilePage() {
                 <h2 className="text-sm font-semibold text-zinc-200 uppercase tracking-wide">
                   Events
                 </h2>
-                <Link href="/events">
-                  <Button variant="ghost" size="sm">
-                    Browse all events
-                  </Button>
+                <Link
+                  href="/events"
+                  className="text-sm font-medium text-zinc-400 hover:text-zinc-100 transition-colors"
+                >
+                  Browse all events →
                 </Link>
               </div>
               {venueEvents?.events?.length ? (

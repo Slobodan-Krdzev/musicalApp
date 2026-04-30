@@ -82,26 +82,28 @@ export default function AdminDashboardPage() {
   });
 
   return (
-    <div className="space-y-8">
-      <h1 className="text-2xl font-bold text-zinc-100">SuperAdmin Dashboard</h1>
+    <div className="space-y-6 sm:space-y-8">
+      <h1 className="text-xl sm:text-2xl font-bold text-zinc-100">SuperAdmin Dashboard</h1>
 
-      <div className="flex flex-wrap gap-2 border-b border-zinc-800 pb-4">
-        {(['stats', 'users', 'events', 'applications', 'deals', 'subscriptions'] as const).map((t) => (
-          <button
-            key={t}
-            type="button"
-            onClick={() => setTab(t)}
-            className={`px-4 py-2 rounded-lg text-sm font-medium capitalize ${
-              tab === t ? 'bg-violet-500 text-white' : 'bg-zinc-800 text-zinc-300 hover:bg-zinc-700'
-            }`}
-          >
-            {t}
-          </button>
-        ))}
+      <div className="-mx-3 sm:-mx-4 lg:-mx-8 overflow-x-auto border-b border-zinc-800 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+        <div className="flex min-w-max items-center gap-2 px-3 pb-4 sm:px-4 lg:px-8">
+          {(['stats', 'users', 'events', 'applications', 'deals', 'subscriptions'] as const).map((t) => (
+            <button
+              key={t}
+              type="button"
+              onClick={() => setTab(t)}
+              className={`whitespace-nowrap rounded-lg px-4 py-2 text-sm font-medium capitalize ${
+                tab === t ? 'bg-violet-500 text-white' : 'bg-zinc-800 text-zinc-300 hover:bg-zinc-700'
+              }`}
+            >
+              {t}
+            </button>
+          ))}
+        </div>
       </div>
 
       {tab === 'stats' && stats && (
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-3 lg:grid-cols-4">
           <Card>
             <CardContent className="p-4">
               <p className="text-zinc-400 text-sm">Total Users</p>

@@ -41,9 +41,9 @@ function VerifyEmailInner() {
 
   if (token) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-zinc-950 px-4">
+      <div className="flex min-h-screen items-center justify-center bg-zinc-950 px-3 py-8 sm:px-4">
         <Card className="w-full max-w-md">
-          <CardContent className="p-8 text-center">
+          <CardContent className="p-6 text-center sm:p-8">
             {status === 'verifying' && (
               <>
                 <div className="w-12 h-12 border-2 border-violet-500 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
@@ -81,9 +81,9 @@ function VerifyEmailInner() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-zinc-950 px-4">
+    <div className="flex min-h-screen items-center justify-center bg-zinc-950 px-3 py-8 sm:px-4">
       <Card className="w-full max-w-md">
-        <CardContent className="p-8 text-center">
+        <CardContent className="p-6 text-center sm:p-8">
           <div className="w-16 h-16 rounded-full bg-violet-500/20 flex items-center justify-center mx-auto mb-4">
             <svg className="w-8 h-8 text-violet-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
@@ -117,8 +117,8 @@ export default function VerifyEmailPage() {
   return (
     <Suspense
       fallback={
-        <div className="min-h-screen flex items-center justify-center bg-zinc-950 px-4">
-          <div className="w-12 h-12 border-2 border-violet-500 border-t-transparent rounded-full animate-spin" />
+        <div className="flex min-h-screen items-center justify-center bg-zinc-950 px-3 sm:px-4">
+          <div className="h-12 w-12 animate-spin rounded-full border-2 border-violet-500 border-t-transparent" />
         </div>
       }
     >

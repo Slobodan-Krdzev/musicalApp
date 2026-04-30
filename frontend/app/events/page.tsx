@@ -58,9 +58,9 @@ export default function EventsPage() {
 
   if (!user) {
     return (
-      <div className="min-h-screen flex flex-col">
+      <div className="flex min-h-screen flex-col">
         <Header />
-        <main className="flex-1 flex items-center justify-center">
+        <main className="flex flex-1 items-center justify-center px-4">
           <p className="text-zinc-500">Please log in to view events.</p>
         </main>
       </div>
@@ -69,11 +69,11 @@ export default function EventsPage() {
 
   if (!isMusician) {
     return (
-      <div className="min-h-screen flex flex-col">
+      <div className="flex min-h-screen flex-col">
         <Header />
-        <main className="flex-1 flex items-center justify-center">
+        <main className="flex flex-1 items-center justify-center px-4">
           <div className="text-center">
-            <h2 className="text-xl font-semibold text-zinc-200 mb-2">Venue Events</h2>
+            <h2 className="mb-2 text-xl font-semibold text-zinc-200">Venue Events</h2>
             <p className="text-zinc-500">Only musicians can browse venue events.</p>
           </div>
         </main>
@@ -82,12 +82,12 @@ export default function EventsPage() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col bg-zinc-950">
+    <div className="flex min-h-screen flex-col bg-zinc-950">
       <Header />
-      <main className="flex-1 container mx-auto px-4 py-8">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
+      <main className="mx-auto w-full max-w-7xl flex-1 px-3 py-6 sm:px-4 sm:py-8 lg:px-8">
+        <div className="mb-6 flex flex-col justify-between gap-2 sm:flex-row sm:items-center">
           <div>
-            <h1 className="text-2xl font-bold text-zinc-100">Browse Events</h1>
+            <h1 className="text-xl sm:text-2xl font-bold text-zinc-100">Browse Events</h1>
             <p className="text-zinc-500 text-sm mt-1">Find gig opportunities from venues near you</p>
           </div>
           {data?.pagination && (
@@ -96,35 +96,40 @@ export default function EventsPage() {
         </div>
 
         {/* Filters */}
-        <div className="flex flex-wrap items-end gap-3 p-4 rounded-xl bg-zinc-900/80 border border-zinc-800 mb-8">
+        <div className="mb-6 grid gap-3 rounded-xl border border-zinc-800 bg-zinc-900/80 p-3 sm:mb-8 sm:p-4 sm:grid-cols-2 lg:flex lg:flex-wrap lg:items-end">
           <Input
             label="Looking For"
             placeholder="e.g. Rock Band"
             value={filters.lookingFor ?? ''}
             onChange={(e) => setFilters((f) => ({ ...f, lookingFor: e.target.value || undefined }))}
-            className="min-w-[160px]"
+            className="lg:min-w-[160px]"
           />
           <Input
             label="From date"
             type="date"
             value={filters.dateFrom ?? ''}
             onChange={(e) => setFilters((f) => ({ ...f, dateFrom: e.target.value || undefined }))}
-            className="min-w-[140px]"
+            className="lg:min-w-[140px]"
           />
           <Input
             label="To date"
             type="date"
             value={filters.dateTo ?? ''}
             onChange={(e) => setFilters((f) => ({ ...f, dateTo: e.target.value || undefined }))}
-            className="min-w-[140px]"
+            className="lg:min-w-[140px]"
           />
-          <Button variant="secondary" size="md" onClick={() => { setFilters({}); setPage(1); }}>
+          <Button
+            variant="secondary"
+            size="md"
+            onClick={() => { setFilters({}); setPage(1); }}
+            className="w-full sm:col-span-2 lg:w-auto lg:col-span-1"
+          >
             Reset
           </Button>
         </div>
 
         {isLoading ? (
-          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+          <div className="grid gap-4 sm:gap-6 sm:grid-cols-2 lg:grid-cols-3">
             {[1, 2, 3].map((i) => (
               <div key={i} className="rounded-xl bg-zinc-900 border border-zinc-800 animate-pulse">
                 <div className="h-52 bg-zinc-800 rounded-t-xl" />
@@ -146,7 +151,7 @@ export default function EventsPage() {
           </div>
         ) : (
           <>
-            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+            <div className="grid gap-4 sm:gap-6 sm:grid-cols-2 lg:grid-cols-3">
               {data?.events?.map((event) => (
                 <EventCard
                   key={event._id}

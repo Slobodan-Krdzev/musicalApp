@@ -8,6 +8,7 @@ import { apiRequest } from '@/lib/api';
 import { Card, CardHeader, CardContent } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
+import { cn } from '@/lib/cn';
 
 export default function CreateEventPage() {
   const router = useRouter();
@@ -45,7 +46,7 @@ export default function CreateEventPage() {
   };
 
   return (
-    <div className="max-w-xl mx-auto">
+    <div className="mx-auto w-full max-w-xl">
       <Link href="/dashboard" className="text-violet-400 hover:underline text-sm mb-4 inline-block">
         ← Dashboard
       </Link>
@@ -81,12 +82,18 @@ export default function CreateEventPage() {
                 placeholder="e.g. Own equipment, 90 min set"
               />
             </div>
-            <div className="flex gap-2">
-              <Button type="submit" loading={create.isPending} disabled={!title.trim()}>
+            <div className="flex flex-col-reverse gap-2 sm:flex-row">
+              <Button type="submit" loading={create.isPending} disabled={!title.trim()} className="w-full sm:w-auto">
                 Create event
               </Button>
-              <Link href="/dashboard">
-                <Button type="button" variant="ghost">Cancel</Button>
+              <Link
+                href="/dashboard"
+                className={cn(
+                  'inline-flex w-full items-center justify-center rounded-lg px-4 py-2 text-sm font-medium text-zinc-300 transition-colors',
+                  'hover:bg-zinc-800 focus:outline-none focus:ring-2 focus:ring-zinc-600 focus:ring-offset-2 focus:ring-offset-zinc-900 sm:w-auto'
+                )}
+              >
+                Cancel
               </Link>
             </div>
             {create.error && <p className="text-sm text-red-400">{create.error.message}</p>}

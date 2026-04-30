@@ -1,13 +1,10 @@
 import Link from 'next/link';
-import { Button } from '@/components/ui/Button';
 import { PublicNavbar } from '@/components/PublicNavbar';
 
 export default function AboutPage() {
   return (
     <div className="min-h-screen bg-zinc-950 text-zinc-100">
-      <div className="sticky top-0 z-20">
-        <PublicNavbar />
-      </div>
+      <PublicNavbar />
 
       <main className="relative overflow-hidden">
         <div
@@ -216,18 +213,17 @@ export default function AboutPage() {
             </div>
 
             <div className="mt-10 flex flex-col gap-3 sm:flex-row">
-              <Link href="/register" className="w-full sm:w-auto">
-                <Button className="w-full rounded-full bg-gradient-to-r from-indigo-500 to-fuchsia-500 py-3 text-base text-white hover:from-indigo-400 hover:to-fuchsia-400 sm:w-auto">
-                  Create account
-                </Button>
+              <Link
+                href="/register"
+                className="inline-flex w-full items-center justify-center rounded-full bg-gradient-to-r from-indigo-500 to-fuchsia-500 px-8 py-3 text-base font-semibold text-white transition-colors hover:from-indigo-400 hover:to-fuchsia-400 focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:ring-offset-2 focus:ring-offset-zinc-950 sm:w-auto"
+              >
+                Create account
               </Link>
-              <Link href="/" className="w-full sm:w-auto">
-                <Button
-                  variant="secondary"
-                  className="w-full rounded-full border border-zinc-700 bg-zinc-900/60 py-3 text-base text-zinc-100 hover:border-zinc-500 hover:bg-zinc-800 sm:w-auto"
-                >
-                  Back to Home
-                </Button>
+              <Link
+                href="/"
+                className="inline-flex w-full items-center justify-center rounded-full border border-zinc-700 bg-zinc-900/60 px-8 py-3 text-base font-semibold text-zinc-100 transition-colors hover:border-zinc-500 hover:bg-zinc-800 focus:outline-none focus:ring-2 focus:ring-zinc-500 focus:ring-offset-2 focus:ring-offset-zinc-950 sm:w-auto"
+              >
+                Back to Home
               </Link>
             </div>
           </div>

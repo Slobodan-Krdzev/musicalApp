@@ -520,34 +520,34 @@ export default function ProfileWizardPage() {
 
   if (!user || (!isMusician && !isVenue)) {
     return (
-      <div className="container mx-auto px-4 py-10">
+      <div className="mx-auto max-w-7xl px-3 py-10 sm:px-4">
         <p className="text-zinc-400 text-sm">Profile wizard is only available for musicians and venues.</p>
       </div>
     );
   }
 
   return (
-    <div className="container mx-auto px-4 py-10 max-w-4xl">
+    <div className="mx-auto w-full max-w-4xl px-3 py-6 sm:px-4 sm:py-10">
       {/* Leave-page modal */}
       <Modal open={showLeaveModal} onClose={() => setShowLeaveModal(false)} title="Leave profile creation?">
         <p className="text-zinc-300 text-sm mb-4">
           All your progress will be lost. Are you sure you want to leave?
         </p>
-        <div className="flex justify-end gap-2">
-          <Button variant="ghost" size="sm" onClick={() => setShowLeaveModal(false)}>Stay</Button>
-          <Button variant="danger" size="sm" onClick={confirmLeave}>Leave</Button>
+        <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+          <Button variant="ghost" size="sm" onClick={() => setShowLeaveModal(false)} className="w-full sm:w-auto">Stay</Button>
+          <Button variant="danger" size="sm" onClick={confirmLeave} className="w-full sm:w-auto">Leave</Button>
         </div>
       </Modal>
 
       {/* Header */}
-      <div className="mb-6 flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-zinc-50">Complete your profile</h1>
-          <p className="text-zinc-400 text-sm mt-1">
+      <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div className="min-w-0">
+          <h1 className="text-xl sm:text-2xl font-bold text-zinc-50">Complete your profile</h1>
+          <p className="text-zinc-400 text-xs sm:text-sm mt-1">
             Fill in each step so we can match you with the right {isMusician ? 'venues' : 'artists'}.
           </p>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center justify-between gap-3 sm:justify-end">
           <Badge variant="default">Step {stepIndex + 1} of {steps.length}</Badge>
           <Button variant="ghost" size="sm" onClick={handleLeaveAttempt}>Exit</Button>
         </div>
@@ -889,25 +889,31 @@ export default function ProfileWizardPage() {
           )}
         </CardContent>
 
-        <CardFooter className="flex justify-between">
-          <div>
+        <CardFooter className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="order-2 w-full sm:order-1 sm:w-auto">
             {stepIndex > 0 && (
-              <Button variant="ghost" size="sm" onClick={goBack}>Previous</Button>
-            )}
-          </div>
-          <div className="flex gap-2">
-            {stepIndex < steps.length - 1 && (
-              <Button size="sm" onClick={goNext}>Next</Button>
-            )}
-            {stepIndex === steps.length - 1 && (
-              <Button size="sm" loading={updateMutation.isPending} onClick={handleSave}>
-                Save & Verify Email
+              <Button variant="ghost" size="sm" onClick={goBack} className="w-full sm:w-auto">
+                Previous
               </Button>
             )}
           </div>
           {updateMutation.error && (
-            <p className="text-sm text-red-400">{(updateMutation.error as Error).message}</p>
+            <p className="order-1 text-sm text-red-400 sm:order-2 sm:flex-1 sm:text-right">
+              {(updateMutation.error as Error).message}
+            </p>
           )}
+          <div className="order-3 flex w-full gap-2 sm:order-3 sm:w-auto">
+            {stepIndex < steps.length - 1 && (
+              <Button size="sm" onClick={goNext} className="w-full sm:w-auto">
+                Next
+              </Button>
+            )}
+            {stepIndex === steps.length - 1 && (
+              <Button size="sm" loading={updateMutation.isPending} onClick={handleSave} className="w-full sm:w-auto">
+                Save & Verify Email
+              </Button>
+            )}
+          </div>
         </CardFooter>
       </Card>
     </div>

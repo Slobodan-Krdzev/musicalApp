@@ -331,12 +331,12 @@ export default function DashboardPage() {
       )}
 
       {/* ── Welcome Header ── */}
-      <div className="flex items-center gap-4">
+      <div className="flex items-center gap-3 sm:gap-4">
         <div className="relative group">
           <button
             type="button"
             onClick={() => avatarInputRef.current?.click()}
-            className="relative w-16 h-16 rounded-full overflow-hidden bg-zinc-800 border-2 border-zinc-700 hover:border-violet-500 transition-colors cursor-pointer"
+            className="relative h-14 w-14 sm:h-16 sm:w-16 rounded-full overflow-hidden bg-zinc-800 border-2 border-zinc-700 hover:border-violet-500 transition-colors cursor-pointer"
           >
             {profile?.avatarUrl ? (
               <Image src={profile.avatarUrl} alt="Avatar" fill className="object-cover" unoptimized />
@@ -358,18 +358,49 @@ export default function DashboardPage() {
           </button>
           <input ref={avatarInputRef} type="file" accept="image/*" className="hidden" onChange={handleAvatarUpload} />
         </div>
-        <div>
-          <h1 className="text-2xl font-bold text-zinc-100">
+        <div className="min-w-0">
+          <h1 className="truncate text-lg sm:text-2xl font-bold text-zinc-100">
             Welcome back{profileName ? `, ${profileName}` : ''}
           </h1>
-          <p className="text-zinc-400 text-sm">{user?.email}</p>
+          <p className="truncate text-xs sm:text-sm text-zinc-400">{user?.email}</p>
         </div>
       </div>
 
+      {/* Mobile tab bar — horizontal scroll */}
+      <nav className="md:hidden -mx-3 sm:-mx-4 overflow-x-auto px-3 sm:px-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+        <ul className="flex min-w-max items-center gap-2">
+          {SIDEBAR_ITEMS.map(({ key, label }) => {
+            const Icon = SIDEBAR_ICONS[key];
+            const isActive = activeTab === key;
+            return (
+              <li key={key}>
+                <button
+                  type="button"
+                  onClick={() => setActiveTab(key)}
+                  className={`inline-flex items-center gap-2 rounded-full border px-4 py-2 text-sm font-medium transition-colors ${
+                    isActive
+                      ? 'border-violet-500/40 bg-violet-500/15 text-violet-300'
+                      : 'border-zinc-800 bg-zinc-900/50 text-zinc-400 hover:bg-zinc-800/80 hover:text-zinc-200'
+                  }`}
+                >
+                  <Icon className="h-4 w-4 flex-shrink-0" />
+                  <span>{label}</span>
+                  {key === 'notifications' && unreadCount > 0 && (
+                    <span className="rounded-full bg-violet-500 px-1.5 py-0.5 text-xs font-bold text-white">
+                      {unreadCount}
+                    </span>
+                  )}
+                </button>
+              </li>
+            );
+          })}
+        </ul>
+      </nav>
+
       {/* ── Main Layout: Sidebar + Content ── */}
-      <div className="flex gap-6 min-h-[600px]">
-        {/* Sidebar */}
-        <nav className="w-56 flex-shrink-0">
+      <div className="flex gap-6 md:min-h-[600px]">
+        {/* Desktop sidebar */}
+        <nav className="hidden md:block w-56 flex-shrink-0">
           <Card className="sticky top-20">
             <CardContent className="p-2">
               <ul className="space-y-1">
@@ -504,8 +535,8 @@ function NotificationsPanel({
 
   return (
     <Card>
-      <CardHeader className="flex flex-row items-center justify-between">
-        <div className="flex items-center gap-3">
+      <CardHeader className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex flex-wrap items-center gap-2 sm:gap-3">
           <h2 className="text-lg font-semibold text-zinc-100">Notifications</h2>
           {unreadCount > 0 && <Badge variant="warning">{unreadCount} unread</Badge>}
         </div>
@@ -744,16 +775,17 @@ function EventsPanel({
       </Modal>
 
       <Card>
-        <CardHeader className="flex flex-row items-center justify-between">
+        <CardHeader className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <h2 className="text-lg font-semibold text-zinc-100">{isVenue ? 'My Events' : 'My Offerings'}</h2>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center justify-between gap-2 sm:justify-end">
             {isVenue && (
               <Button size="sm" onClick={() => onCreateEvent()}>
                 <span className="flex items-center gap-1.5">
                   <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
                   </svg>
-                  Create Event
+                  <span className="hidden sm:inline">Create Event</span>
+                  <span className="sm:hidden">New</span>
                 </span>
               </Button>
             )}
@@ -763,28 +795,42 @@ function EventsPanel({
                   <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
                   </svg>
-                  Create Offering
+                  <span className="hidden sm:inline">Create Offering</span>
+                  <span className="sm:hidden">New</span>
                 </span>
               </Button>
             )}
-            <button type="button" onClick={prevMonth} className="p-1.5 rounded-lg hover:bg-zinc-800 text-zinc-400 transition-colors">
-              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" /></svg>
-            </button>
-            <span className="text-zinc-200 text-sm font-medium min-w-[140px] text-center">{monthName}</span>
-            <button type="button" onClick={nextMonth} className="p-1.5 rounded-lg hover:bg-zinc-800 text-zinc-400 transition-colors">
-              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" /></svg>
-            </button>
+            <div className="flex items-center gap-1.5">
+              <button type="button" aria-label="Previous month" onClick={prevMonth} className="p-1.5 rounded-lg hover:bg-zinc-800 text-zinc-400 transition-colors">
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" /></svg>
+              </button>
+              <span className="text-zinc-200 text-sm font-medium min-w-[120px] sm:min-w-[140px] text-center">{monthName}</span>
+              <button type="button" aria-label="Next month" onClick={nextMonth} className="p-1.5 rounded-lg hover:bg-zinc-800 text-zinc-400 transition-colors">
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" /></svg>
+              </button>
+            </div>
           </div>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-7 gap-px mb-1">
-            {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((d) => (
-              <div key={d} className="text-center text-xs font-medium text-zinc-500 py-2">{d}</div>
+            {[
+              { full: 'Sun', short: 'S' },
+              { full: 'Mon', short: 'M' },
+              { full: 'Tue', short: 'T' },
+              { full: 'Wed', short: 'W' },
+              { full: 'Thu', short: 'T' },
+              { full: 'Fri', short: 'F' },
+              { full: 'Sat', short: 'S' },
+            ].map((d, i) => (
+              <div key={i} className="py-2 text-center text-xs font-medium text-zinc-500">
+                <span className="sm:hidden">{d.short}</span>
+                <span className="hidden sm:inline">{d.full}</span>
+              </div>
             ))}
           </div>
           <div className="grid grid-cols-7 gap-px">
             {Array.from({ length: firstDay }).map((_, i) => (
-              <div key={`empty-${i}`} className="h-16 rounded-lg" />
+              <div key={`empty-${i}`} className="h-12 rounded-lg sm:h-16" />
             ))}
             {Array.from({ length: daysInMonth }).map((_, i) => {
               const day = i + 1;
@@ -795,7 +841,7 @@ function EventsPanel({
                   key={day}
                   type="button"
                   onClick={() => handleCalendarDayClick(day)}
-                  className={`h-16 rounded-lg p-1 text-left transition-colors ${
+                  className={`h-12 sm:h-16 rounded-lg p-1 text-left transition-colors ${
                     isToday(day)
                       ? 'bg-violet-500/10 border border-violet-500/30'
                       : hasItems
@@ -807,21 +853,36 @@ function EventsPanel({
                     {day}
                   </span>
                   {dayItems.length > 0 && (
-                    <div className="mt-0.5 space-y-0.5">
-                      {dayItems.slice(0, 2).map((item) => (
-                        <div
-                          key={item._id}
-                          className="flex items-center gap-1 cursor-pointer"
-                          onClick={(e) => { e.stopPropagation(); handleItemClick(item); }}
-                        >
-                          <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${getStatusColor(item.status)}`} />
-                          <span className="text-[10px] text-zinc-300 truncate">{item.title}</span>
-                        </div>
-                      ))}
-                      {dayItems.length > 2 && (
-                        <span className="text-[10px] text-zinc-500">+{dayItems.length - 2} more</span>
-                      )}
-                    </div>
+                    <>
+                      {/* Mobile: status dots only */}
+                      <div className="mt-1 flex flex-wrap gap-0.5 sm:hidden">
+                        {dayItems.slice(0, 3).map((item) => (
+                          <span
+                            key={item._id}
+                            className={`h-1.5 w-1.5 rounded-full ${getStatusColor(item.status)}`}
+                          />
+                        ))}
+                        {dayItems.length > 3 && (
+                          <span className="text-[9px] leading-none text-zinc-500">+{dayItems.length - 3}</span>
+                        )}
+                      </div>
+                      {/* sm+: titles */}
+                      <div className="mt-0.5 hidden space-y-0.5 sm:block">
+                        {dayItems.slice(0, 2).map((item) => (
+                          <div
+                            key={item._id}
+                            className="flex items-center gap-1 cursor-pointer"
+                            onClick={(e) => { e.stopPropagation(); handleItemClick(item); }}
+                          >
+                            <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${getStatusColor(item.status)}`} />
+                            <span className="text-[10px] text-zinc-300 truncate">{item.title}</span>
+                          </div>
+                        ))}
+                        {dayItems.length > 2 && (
+                          <span className="text-[10px] text-zinc-500">+{dayItems.length - 2} more</span>
+                        )}
+                      </div>
+                    </>
                   )}
                 </button>
               );
@@ -890,7 +951,7 @@ function EventsPanel({
                     key={app._id}
                     type="button"
                     onClick={() => router.push(href)}
-                    className="w-full text-left px-4 py-3 hover:bg-zinc-800/30 transition-colors"
+                    className="w-full text-left px-3 py-3 sm:px-4 hover:bg-zinc-800/30 transition-colors"
                   >
                     <div className="flex items-center gap-3">
                       <span className={`w-2 h-2 rounded-full flex-shrink-0 ${
@@ -898,14 +959,14 @@ function EventsPanel({
                       }`} />
                       <div className="flex-1 min-w-0">
                         <p className="text-sm text-zinc-200 truncate">{entityTitle}</p>
-                        <p className="text-xs text-zinc-500 mt-0.5">
+                        <p className="text-xs text-zinc-500 mt-0.5 truncate">
                           {app.entityType === 'EVENT' ? 'Event' : 'Offering'}
                           {app.quote != null && ` · €${app.quote}`}
                           {' · '}
                           {new Date(app.createdAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
                         </p>
                       </div>
-                      <Badge variant={statusBadge}>{app.status}</Badge>
+                      <Badge variant={statusBadge} className="flex-shrink-0">{app.status}</Badge>
                     </div>
                   </button>
                 );
@@ -1015,7 +1076,7 @@ function CreateEventModal({
 
   return (
     <Modal open={open} onClose={onClose} title="Create Event" className="max-w-xl">
-      <form onSubmit={handleSubmit} className="space-y-4 max-h-[70vh] overflow-y-auto pr-1">
+      <form onSubmit={handleSubmit} className="space-y-4">
         {error && (
           <div className="px-3 py-2 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 text-sm">
             {error}
@@ -1032,7 +1093,7 @@ function CreateEventModal({
           <textarea className={`${inputClass} resize-none`} rows={3} placeholder="Describe the event and what you're looking for..." value={form.description} onChange={(e) => handleFieldChange('description', e.target.value)} />
         </div>
 
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div>
             <label className="text-xs text-zinc-500 font-medium">Date & Time *</label>
             <input type="datetime-local" className={inputClass} value={form.date} onChange={(e) => handleFieldChange('date', e.target.value)} />
@@ -1066,7 +1127,7 @@ function CreateEventModal({
           </div>
         </div>
 
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div>
             <label className="text-xs text-zinc-500 font-medium">Approximate Payment (€)</label>
             <input type="number" min="0" className={inputClass} placeholder="e.g. 500" value={form.approximatePayment} onChange={(e) => handleFieldChange('approximatePayment', e.target.value)} />
@@ -1080,9 +1141,9 @@ function CreateEventModal({
           </div>
         </div>
 
-        <div className="flex justify-end gap-2 pt-2 border-t border-zinc-800">
-          <Button type="button" variant="ghost" onClick={onClose}>Cancel</Button>
-          <Button type="submit" loading={submitting}>Create Event</Button>
+        <div className="flex flex-col-reverse gap-2 border-t border-zinc-800 pt-3 sm:flex-row sm:justify-end">
+          <Button type="button" variant="ghost" onClick={onClose} className="w-full sm:w-auto">Cancel</Button>
+          <Button type="submit" loading={submitting} className="w-full sm:w-auto">Create Event</Button>
         </div>
       </form>
     </Modal>
@@ -1201,7 +1262,7 @@ function CreateOfferingModal({
           <textarea className={`${inputClass} resize-none`} rows={3} placeholder="Describe what you offer and the type of gig you're looking for..." value={form.description} onChange={(e) => handleFieldChange('description', e.target.value)} />
         </div>
 
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div>
             <label className="text-xs text-zinc-500 font-medium">Date & Time *</label>
             <input type="datetime-local" className={inputClass} value={form.date} onChange={(e) => handleFieldChange('date', e.target.value)} />
@@ -1235,7 +1296,7 @@ function CreateOfferingModal({
           </div>
         </div>
 
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div>
             <label className="text-xs text-zinc-500 font-medium">Approximate Price (€)</label>
             <input type="number" min="0" className={inputClass} placeholder="e.g. 300" value={form.approximatePrice} onChange={(e) => handleFieldChange('approximatePrice', e.target.value)} />
@@ -1251,9 +1312,9 @@ function CreateOfferingModal({
 
         <p className="text-xs text-zinc-600">Your genres and interests from your profile will be automatically attached.</p>
 
-        <div className="flex justify-end gap-2 pt-2 border-t border-zinc-800">
-          <Button type="button" variant="ghost" onClick={onClose}>Cancel</Button>
-          <Button type="submit" loading={submitting}>Create Offering</Button>
+        <div className="flex flex-col-reverse gap-2 border-t border-zinc-800 pt-3 sm:flex-row sm:justify-end">
+          <Button type="button" variant="ghost" onClick={onClose} className="w-full sm:w-auto">Cancel</Button>
+          <Button type="submit" loading={submitting} className="w-full sm:w-auto">Create Offering</Button>
         </div>
       </form>
     </Modal>
@@ -1331,11 +1392,11 @@ function ProfilePanel({
 
   return (
     <Card>
-      <CardHeader className="flex flex-row items-center justify-between">
+      <CardHeader className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <h2 className="text-lg font-semibold text-zinc-100">My Profile</h2>
         {!editing ? (
-          <Button variant="secondary" size="sm" onClick={startEdit}>
-            <span className="flex items-center gap-1.5">
+          <Button variant="secondary" size="sm" onClick={startEdit} className="w-full sm:w-auto">
+            <span className="flex items-center justify-center gap-1.5">
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10" />
               </svg>
@@ -1343,9 +1404,9 @@ function ProfilePanel({
             </span>
           </Button>
         ) : (
-          <div className="flex gap-2">
-            <Button variant="ghost" size="sm" onClick={cancelEdit}>Cancel</Button>
-            <Button size="sm" loading={isUpdating} onClick={saveEdit}>Save changes</Button>
+          <div className="flex flex-col-reverse gap-2 sm:flex-row sm:gap-2">
+            <Button variant="ghost" size="sm" onClick={cancelEdit} className="w-full sm:w-auto">Cancel</Button>
+            <Button size="sm" loading={isUpdating} onClick={saveEdit} className="w-full sm:w-auto">Save changes</Button>
           </div>
         )}
       </CardHeader>
@@ -1388,7 +1449,7 @@ function ProfilePanel({
         {editing ? (
           <div>
             <span className="text-xs font-medium text-zinc-500 uppercase tracking-wider">Location</span>
-            <div className="grid grid-cols-3 gap-2 mt-1.5">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 mt-1.5">
               <div>
                 <label className="text-xs text-zinc-600">City</label>
                 <input className={inputClass} value={current.location?.city || ''} onChange={(e) => updateDraftLocation('city', e.target.value)} />
@@ -1629,9 +1690,11 @@ function EditableYesNo({
 
 function InfoRow({ label, value }: { label: string; value: string }) {
   return (
-    <div className="flex items-baseline gap-2 py-1">
-      <span className="text-sm text-zinc-500 w-32 flex-shrink-0">{label}</span>
-      <span className="text-sm text-zinc-300">{value}</span>
+    <div className="flex flex-col gap-0.5 py-1 sm:flex-row sm:items-baseline sm:gap-2">
+      <span className="text-xs uppercase tracking-wide text-zinc-500 sm:w-32 sm:flex-shrink-0 sm:text-sm sm:normal-case sm:tracking-normal">
+        {label}
+      </span>
+      <span className="text-sm text-zinc-300 break-words">{value}</span>
     </div>
   );
 }
@@ -1688,9 +1751,9 @@ function MediaPanel({
 
   return (
     <Card>
-      <CardHeader className="flex flex-row items-center justify-between">
+      <CardHeader className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <h2 className="text-lg font-semibold text-zinc-100">Media Gallery</h2>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center justify-between gap-2 sm:justify-end">
           <span className="text-zinc-500 text-sm">{images.length} image{images.length !== 1 ? 's' : ''}</span>
           <label className="cursor-pointer">
             <input type="file" accept="image/*" multiple onChange={handleAddImages} disabled={uploading} className="hidden" />
@@ -1775,14 +1838,14 @@ function LinksPanel({
 
   return (
     <Card>
-      <CardHeader className="flex flex-row items-center justify-between">
+      <CardHeader className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <h2 className="text-lg font-semibold text-zinc-100">Social Links</h2>
         {!editing ? (
-          <Button variant="secondary" size="sm" onClick={() => setEditing(true)}>Edit</Button>
+          <Button variant="secondary" size="sm" onClick={() => setEditing(true)} className="w-full sm:w-auto">Edit</Button>
         ) : (
-          <div className="flex gap-2">
-            <Button variant="ghost" size="sm" onClick={() => setEditing(false)}>Cancel</Button>
-            <Button size="sm" loading={isUpdating} onClick={handleSave}>Save</Button>
+          <div className="flex flex-col-reverse gap-2 sm:flex-row sm:gap-2">
+            <Button variant="ghost" size="sm" onClick={() => setEditing(false)} className="w-full sm:w-auto">Cancel</Button>
+            <Button size="sm" loading={isUpdating} onClick={handleSave} className="w-full sm:w-auto">Save</Button>
           </div>
         )}
       </CardHeader>

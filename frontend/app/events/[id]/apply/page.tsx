@@ -57,18 +57,18 @@ export default function ApplyToEventPage() {
 
   if (success) {
     return (
-      <div className="min-h-screen flex flex-col"><Header />
-        <main className="flex-1 flex items-center justify-center">
-          <Card className="max-w-md w-full">
-            <CardContent className="p-8 text-center space-y-4">
-              <div className="w-16 h-16 mx-auto rounded-full bg-emerald-500/15 flex items-center justify-center">
-                <svg className="w-8 h-8 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
+      <div className="flex min-h-screen flex-col"><Header />
+        <main className="flex flex-1 items-center justify-center px-3 py-8 sm:p-6">
+          <Card className="w-full max-w-md">
+            <CardContent className="space-y-4 p-6 text-center sm:p-8">
+              <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-emerald-500/15">
+                <svg className="h-8 w-8 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
               </div>
               <h2 className="text-xl font-bold text-zinc-100">Application Sent!</h2>
-              <p className="text-zinc-400 text-sm">We've notified the venue. You'll receive a notification when they respond.</p>
-              <div className="flex gap-3 justify-center pt-2">
-                <Button variant="secondary" onClick={() => router.push('/events')}>Browse More</Button>
-                <Button onClick={() => router.push('/dashboard')}>Dashboard</Button>
+              <p className="text-sm text-zinc-400">We&apos;ve notified the venue. You&apos;ll receive a notification when they respond.</p>
+              <div className="flex flex-col gap-2 pt-2 sm:flex-row sm:justify-center sm:gap-3">
+                <Button variant="secondary" onClick={() => router.push('/events')} className="w-full sm:w-auto">Browse More</Button>
+                <Button onClick={() => router.push('/dashboard')} className="w-full sm:w-auto">Dashboard</Button>
               </div>
             </CardContent>
           </Card>
@@ -78,8 +78,8 @@ export default function ApplyToEventPage() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col bg-zinc-950"><Header />
-      <main className="flex-1 container mx-auto px-4 py-8 max-w-2xl">
+    <div className="flex min-h-screen flex-col bg-zinc-950"><Header />
+      <main className="mx-auto w-full max-w-2xl flex-1 px-3 py-6 sm:px-4 sm:py-8">
         {isLoading ? (
           <div className="space-y-4"><div className="h-8 bg-zinc-800 rounded w-1/2 animate-pulse" /><div className="h-64 bg-zinc-800 rounded animate-pulse" /></div>
         ) : !event ? (
@@ -110,7 +110,7 @@ export default function ApplyToEventPage() {
 
                 {event.description && <p className="text-zinc-300 text-sm whitespace-pre-wrap">{event.description}</p>}
 
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                   {event.date && (
                     <div className="rounded-lg bg-zinc-800/50 p-3">
                       <span className="text-xs text-zinc-500 block mb-0.5">Event Date</span>

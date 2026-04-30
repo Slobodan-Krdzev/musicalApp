@@ -10,9 +10,15 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   return (
     <ProtectedRoute>
-      <div className="min-h-screen flex flex-col">
+      <div className="flex min-h-screen flex-col">
         {!isProfileWizard && <Header />}
-        <main className={`flex-1 ${isProfileWizard ? '' : 'container mx-auto px-4 py-8'}`}>
+        <main
+          className={
+            isProfileWizard
+              ? 'flex-1'
+              : 'mx-auto w-full max-w-7xl flex-1 px-3 py-6 sm:px-4 sm:py-8 lg:px-8'
+          }
+        >
           {children}
         </main>
       </div>

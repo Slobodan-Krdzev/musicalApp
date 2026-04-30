@@ -9,10 +9,10 @@ export default function ProfileContactPage() {
   const params = useParams();
   const id = params?.id as string | undefined;
   return (
-    <div className="min-h-screen flex flex-col">
+    <div className="flex min-h-screen flex-col">
       <Header />
-      <main className="flex-1 container mx-auto px-4 py-8">
-        <div className="max-w-md mx-auto">
+      <main className="mx-auto w-full max-w-7xl flex-1 px-3 py-6 sm:px-4 sm:py-8 lg:px-8">
+        <div className="mx-auto max-w-md">
           <Card>
             <CardContent className="p-6">
               <h1 className="text-xl font-semibold text-zinc-100 mb-2">Contact</h1>
