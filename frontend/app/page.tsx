@@ -10,7 +10,7 @@ export default function LandingPage() {
       <main className="flex-1">
         {/* Hero */}
         <section
-          className="relative flex !h-[100vh] max-h-[100vh] flex-col overflow-hidden bg-zinc-950 lg:bg-cover bg-center bg-no-repeat"
+          className="relative flex lg:h-[100vh] lg:max-h-[100vh] flex-col overflow-hidden bg-zinc-950 lg:bg-cover  bg-center bg-no-repeat"
           style={{ backgroundImage: "url('/frontHero.png')" }}
         >
           {/* Dark overlay over hero image */}
