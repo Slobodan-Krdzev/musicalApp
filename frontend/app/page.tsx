@@ -10,7 +10,7 @@ export default function LandingPage() {
       <main className="flex-1">
         {/* Hero */}
         <section
-          className="relative flex min-h-[100dvh] flex-col overflow-hidden bg-zinc-950 bg-cover bg-center bg-no-repeat"
+          className="relative flex !h-[100vh] max-h-[100vh] flex-col overflow-hidden bg-zinc-950 lg:bg-cover bg-center bg-no-repeat"
           style={{ backgroundImage: "url('/frontHero.png')" }}
         >
           {/* Dark overlay over hero image */}
@@ -19,8 +19,8 @@ export default function LandingPage() {
 
           <PublicNavbar />
 
-          <div className="relative z-10 flex flex-1">
-            <div className="mx-auto flex max-w-6xl flex-col items-center justify-center px-4 pb-16 pt-12 text-center sm:px-6 sm:pb-20 sm:pt-16 lg:px-8 lg:pt-20">
+          <div className="relative z-10 flex min-h-0 flex-1 flex-col overflow-y-auto">
+            <div className="mx-auto flex min-h-0 w-full max-w-6xl flex-1 flex-col items-center justify-center px-4 py-12 text-center sm:px-6 sm:py-16 lg:px-8 lg:py-20">
               <span className="mb-4 inline-flex items-center rounded-full border border-zinc-800 bg-zinc-900/60 px-3 py-1 text-xs font-medium uppercase tracking-wide text-zinc-400">
                 <span className="mr-2 h-1.5 w-1.5 rounded-full bg-indigo-400" />
                 The #1 Platform for Live Music
