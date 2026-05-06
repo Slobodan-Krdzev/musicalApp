@@ -10,6 +10,7 @@ import { Header } from '@/components/Layout/Header';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
 import { Card, CardContent, CardHeader } from '@/components/ui/Card';
+import { SocialLinksChips } from '@/components/SocialLinksChips';
 
 export default function FinalizeApplicationPage() {
   const { id } = useParams<{ id: string }>();
@@ -51,7 +52,7 @@ export default function FinalizeApplicationPage() {
 
   return (
     <div className="flex min-h-screen flex-col bg-zinc-950"><Header />
-      <main className="mx-auto w-full max-w-3xl flex-1 px-3 py-6 sm:px-4 sm:py-8">
+      <main className="mx-auto w-full max-w-6xl flex-1 px-3 py-6 sm:px-4 sm:py-8">
         {isLoading ? (
           <div className="space-y-4"><div className="h-8 bg-zinc-800 rounded w-1/2 animate-pulse" /><div className="h-64 bg-zinc-800 rounded animate-pulse" /></div>
         ) : !app ? (
@@ -85,11 +86,15 @@ export default function FinalizeApplicationPage() {
               </CardContent>
             </Card>
 
-            {/* Venue Profile */}
-            {venueProfile && <ProfileCard title="Venue" profile={venueProfile} showContactData={isFinalized} type="venue" />}
-
-            {/* Musician Profile */}
-            {musicianProfile && <ProfileCard title="Musician" profile={musicianProfile} showContactData={isFinalized} type="musician" />}
+            {/* Venue & musician — side by side from lg */}
+            <div className="grid grid-cols-1 gap-6 lg:grid-cols-2 lg:items-stretch">
+              {venueProfile && (
+                <ProfileCard title="Venue" profile={venueProfile} showContactData={isFinalized} type="venue" />
+              )}
+              {musicianProfile && (
+                <ProfileCard title="Musician" profile={musicianProfile} showContactData={isFinalized} type="musician" />
+              )}
+            </div>
 
             {/* Finalize action */}
             {!isFinalized && (
@@ -127,9 +132,11 @@ function ProfileCard({ title, profile, showContactData, type }: { title: string;
   const desc = type === 'venue' ? profile.description : profile.bio;
 
   return (
-    <Card>
-      <CardHeader><h2 className="text-lg font-semibold text-zinc-100">{title}</h2></CardHeader>
-      <CardContent className="space-y-3">
+    <Card className="flex h-full min-h-0 flex-col">
+      <CardHeader>
+        <h2 className="text-lg font-semibold text-zinc-100">{title}</h2>
+      </CardHeader>
+      <CardContent className="min-h-0 flex-1 space-y-3">
         <div className="flex items-center gap-3">
           <div className="w-14 h-14 rounded-full overflow-hidden bg-zinc-700 flex-shrink-0">
             {profile.avatarUrl ? (
@@ -167,15 +174,8 @@ function ProfileCard({ title, profile, showContactData, type }: { title: string;
                 <span className="text-zinc-300">{profile.location.address}</span>
               </div>
             )}
-            {profile.socialLinks && Object.entries(profile.socialLinks).filter(([, v]) => v).length > 0 && (
-              <div className="space-y-1">
-                <span className="text-xs text-zinc-500">Social Links</span>
-                <div className="flex flex-wrap gap-2">
-                  {Object.entries(profile.socialLinks).filter(([, v]) => v).map(([k, v]) => (
-                    <a key={k} href={v as string} target="_blank" rel="noopener noreferrer" className="text-violet-400 text-xs hover:underline">{k}</a>
-                  ))}
-                </div>
-              </div>
+            {showContactData && profile.socialLinks && (
+              <SocialLinksChips links={profile.socialLinks} className="pt-1" />
             )}
           </div>
         )}

@@ -115,7 +115,12 @@ export function PublicNavbar({ brandText = 'GigConnection' }: PublicNavbarProps)
           <Link href="/about" className="text-zinc-400 hover:text-zinc-100">
             About Us
           </Link>
-          {!isLoading && !user && (
+          {/*
+            Avoid hydration mismatch: on the server the auth query is disabled so isLoading is false
+            while on the client the first paint often has isLoading true. Gate "Log in" until the client
+            has mounted and auth has settled (!isLoading).
+          */}
+          {mounted && !isLoading && !user && (
             <Link href="/login" className="text-zinc-400 hover:text-zinc-100">
               Log in
             </Link>

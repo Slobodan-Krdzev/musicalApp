@@ -10,6 +10,7 @@ import { Header } from '@/components/Layout/Header';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
 import { Card, CardContent, CardHeader } from '@/components/ui/Card';
+import { SocialLinksChips } from '@/components/SocialLinksChips';
 
 export default function ReviewApplicationPage() {
   const { id } = useParams<{ id: string }>();
@@ -28,7 +29,6 @@ export default function ReviewApplicationPage() {
   const entity = data?.entity;
   const applicantProfile = data?.applicantProfile;
   const isOwner = app?.ownerId === user?._id;
-  const isApplicant = app?.applicantId === user?._id;
   const isEvent = app?.entityType === 'EVENT';
 
   async function handleAction(status: 'ACCEPTED' | 'REJECTED') {
@@ -52,7 +52,7 @@ export default function ReviewApplicationPage() {
 
   return (
     <div className="flex min-h-screen flex-col bg-zinc-950"><Header />
-      <main className="mx-auto w-full max-w-2xl flex-1 px-3 py-6 sm:px-4 sm:py-8">
+      <main className="mx-auto w-full max-w-6xl flex-1 px-3 py-6 sm:px-4 sm:py-8">
         {isLoading ? (
           <div className="space-y-4"><div className="h-8 bg-zinc-800 rounded w-1/2 animate-pulse" /><div className="h-64 bg-zinc-800 rounded animate-pulse" /></div>
         ) : !app ? (
@@ -69,75 +69,158 @@ export default function ReviewApplicationPage() {
               <Badge variant={app.status === 'PENDING' ? 'warning' : app.status === 'ACCEPTED' || app.status === 'FINALIZED' ? 'success' : 'danger'}>{app.status}</Badge>
             </div>
 
-            {/* Entity details */}
-            <Card>
-              <CardHeader><h2 className="text-lg font-semibold text-zinc-100">{isEvent ? 'Event' : 'Offering'} Details</h2></CardHeader>
-              <CardContent className="space-y-3">
-                <h3 className="text-zinc-200 font-semibold">{entity?.title}</h3>
-                {entity?.description && <p className="text-zinc-400 text-sm whitespace-pre-wrap">{entity.description}</p>}
-                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                  {entity?.date && <InfoBox label="Date" value={new Date(entity.date).toLocaleDateString(undefined, { weekday: 'short', month: 'long', day: 'numeric', year: 'numeric' })} />}
-                  {entity?.activeTo && <InfoBox label="Active Until" value={new Date(entity.activeTo).toLocaleDateString(undefined, { weekday: 'short', month: 'long', day: 'numeric', year: 'numeric' })} />}
-                </div>
-                {entity?.lookingFor?.length > 0 && (
-                  <div><span className="text-xs text-zinc-500 block mb-1">Looking For</span><div className="flex flex-wrap gap-1.5">{entity.lookingFor.map((t: string) => <Badge key={t}>{t}</Badge>)}</div></div>
-                )}
-              </CardContent>
-            </Card>
-
-            {/* Applicant profile (visible to owner) */}
-            {isOwner && applicantProfile && (
-              <Card>
-                <CardHeader><h2 className="text-lg font-semibold text-zinc-100">{isEvent ? 'Musician' : 'Venue'} Profile</h2></CardHeader>
+            {/* Event/offering + application context: two columns from lg */}
+            <div className="grid grid-cols-1 gap-6 lg:grid-cols-2 lg:items-start">
+              <Card className="min-w-0">
+                <CardHeader>
+                  <h2 className="text-lg font-semibold text-zinc-100">{isEvent ? 'Event' : 'Offering'} Details</h2>
+                </CardHeader>
                 <CardContent className="space-y-3">
-                  <div className="flex items-center gap-3">
-                    <div className="w-14 h-14 rounded-full overflow-hidden bg-zinc-700 flex-shrink-0">
-                      {applicantProfile.avatarUrl ? (
-                        <Image src={applicantProfile.avatarUrl} alt="" width={56} height={56} className="object-cover" unoptimized />
-                      ) : (
-                        <span className="flex items-center justify-center w-full h-full text-white text-lg font-bold">{((applicantProfile.bandName || applicantProfile.venueName || '?')[0]).toUpperCase()}</span>
-                      )}
-                    </div>
-                    <div>
-                      <p className="text-zinc-100 font-semibold text-lg">{applicantProfile.bandName || applicantProfile.venueName || 'Unknown'}</p>
-                      {applicantProfile.location && (
-                        <p className="text-zinc-500 text-sm">{[applicantProfile.location.city, applicantProfile.location.country].filter(Boolean).join(', ')}</p>
-                      )}
-                    </div>
+                  <h3 className="font-semibold text-zinc-200">{entity?.title}</h3>
+                  {entity?.description && (
+                    <p className="whitespace-pre-wrap text-sm text-zinc-400">{entity.description}</p>
+                  )}
+                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2">
+                    {entity?.date && (
+                      <InfoBox
+                        label="Date"
+                        value={new Date(entity.date).toLocaleDateString(undefined, {
+                          weekday: 'short',
+                          month: 'long',
+                          day: 'numeric',
+                          year: 'numeric',
+                        })}
+                      />
+                    )}
+                    {entity?.activeTo && (
+                      <InfoBox
+                        label="Active Until"
+                        value={new Date(entity.activeTo).toLocaleDateString(undefined, {
+                          weekday: 'short',
+                          month: 'long',
+                          day: 'numeric',
+                          year: 'numeric',
+                        })}
+                      />
+                    )}
                   </div>
-                  {(applicantProfile.bio || applicantProfile.description) && (
-                    <p className="text-zinc-300 text-sm whitespace-pre-wrap">{applicantProfile.bio || applicantProfile.description}</p>
-                  )}
-                  {applicantProfile.genres?.length > 0 && (
-                    <div><span className="text-xs text-zinc-500 block mb-1">Genres</span><div className="flex flex-wrap gap-1.5">{applicantProfile.genres.map((g: string) => <Badge key={g}>{g}</Badge>)}</div></div>
-                  )}
-                  {applicantProfile.images?.length > 0 && (
-                    <div className="grid grid-cols-3 gap-2">
-                      {applicantProfile.images.slice(0, 6).map((url: string, i: number) => (
-                        <div key={i} className="aspect-square rounded-lg overflow-hidden bg-zinc-800">
-                          <Image src={url} alt="" width={200} height={200} className="object-cover w-full h-full" unoptimized />
-                        </div>
-                      ))}
+                  {entity?.lookingFor?.length > 0 && (
+                    <div>
+                      <span className="mb-1 block text-xs text-zinc-500">Looking For</span>
+                      <div className="flex flex-wrap gap-1.5">
+                        {entity.lookingFor.map((t: string) => (
+                          <Badge key={t}>{t}</Badge>
+                        ))}
+                      </div>
                     </div>
                   )}
                 </CardContent>
               </Card>
-            )}
 
-            {/* Quote & message */}
-            <Card>
-              <CardHeader><h2 className="text-lg font-semibold text-zinc-100">Application Details</h2></CardHeader>
-              <CardContent className="space-y-3">
-                {app.quote != null && (
-                  <div className="flex items-center gap-4 rounded-lg bg-emerald-500/5 border border-emerald-500/20 p-3">
-                    <span className="text-emerald-300 font-semibold text-lg">€{app.quote}</span>
-                    <span className="text-zinc-500 text-sm">Quoted price</span>
-                  </div>
+              <div className="flex min-w-0 flex-col gap-6">
+                {isOwner && applicantProfile && (
+                  <Card className="min-w-0">
+                    <CardHeader>
+                      <h2 className="text-lg font-semibold text-zinc-100">
+                        {isEvent ? 'Musician' : 'Venue'} Profile
+                      </h2>
+                    </CardHeader>
+                    <CardContent className="space-y-3">
+                      <div className="flex items-center gap-3">
+                        <div className="flex h-14 w-14 flex-shrink-0 items-center justify-center overflow-hidden rounded-full bg-zinc-700">
+                          {applicantProfile.avatarUrl ? (
+                            <Image
+                              src={applicantProfile.avatarUrl}
+                              alt=""
+                              width={56}
+                              height={56}
+                              className="object-cover"
+                              unoptimized
+                            />
+                          ) : (
+                            <span className="flex h-full w-full items-center justify-center text-lg font-bold text-white">
+                              {(applicantProfile.bandName || applicantProfile.venueName || '?')[0].toUpperCase()}
+                            </span>
+                          )}
+                        </div>
+                        <div>
+                          <p className="text-lg font-semibold text-zinc-100">
+                            {applicantProfile.bandName || applicantProfile.venueName || 'Unknown'}
+                          </p>
+                          {applicantProfile.location && (
+                            <p className="text-sm text-zinc-500">
+                              {[applicantProfile.location.city, applicantProfile.location.country]
+                                .filter(Boolean)
+                                .join(', ')}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                      {(applicantProfile.bio || applicantProfile.description) && (
+                        <p className="whitespace-pre-wrap text-sm text-zinc-300">
+                          {applicantProfile.bio || applicantProfile.description}
+                        </p>
+                      )}
+                      {applicantProfile.genres?.length > 0 && (
+                        <div>
+                          <span className="mb-1 block text-xs text-zinc-500">Genres</span>
+                          <div className="flex flex-wrap gap-1.5">
+                            {applicantProfile.genres.map((g: string) => (
+                              <Badge key={g}>{g}</Badge>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                      {applicantProfile.socialLinks &&
+                        Object.values(applicantProfile.socialLinks).some(Boolean) && (
+                          <SocialLinksChips links={applicantProfile.socialLinks} />
+                        )}
+                      {applicantProfile.images?.length > 0 && (
+                        <div className="grid grid-cols-3 gap-2">
+                          {applicantProfile.images.slice(0, 6).map((url: string, i: number) => (
+                            <div key={i} className="aspect-square overflow-hidden rounded-lg bg-zinc-800">
+                              <Image
+                                src={url}
+                                alt=""
+                                width={200}
+                                height={200}
+                                className="h-full w-full object-cover"
+                                unoptimized
+                              />
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
                 )}
-                {app.message && <p className="text-zinc-300 text-sm whitespace-pre-wrap">{app.message}</p>}
-                <p className="text-zinc-600 text-xs">Applied {new Date(app.createdAt).toLocaleDateString(undefined, { month: 'long', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</p>
-              </CardContent>
-            </Card>
+
+                <Card className="min-w-0">
+                  <CardHeader>
+                    <h2 className="text-lg font-semibold text-zinc-100">Application Details</h2>
+                  </CardHeader>
+                  <CardContent className="space-y-3">
+                    {app.quote != null && (
+                      <div className="flex items-center gap-4 rounded-lg border border-emerald-500/20 bg-emerald-500/5 p-3">
+                        <span className="text-lg font-semibold text-emerald-300">€{app.quote}</span>
+                        <span className="text-sm text-zinc-500">Quoted price</span>
+                      </div>
+                    )}
+                    {app.message && <p className="whitespace-pre-wrap text-sm text-zinc-300">{app.message}</p>}
+                    <p className="text-xs text-zinc-600">
+                      Applied{' '}
+                      {new Date(app.createdAt).toLocaleDateString(undefined, {
+                        month: 'long',
+                        day: 'numeric',
+                        year: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit',
+                      })}
+                    </p>
+                  </CardContent>
+                </Card>
+              </div>
+            </div>
 
             {/* Actions */}
             {isOwner && app.status === 'PENDING' && (
