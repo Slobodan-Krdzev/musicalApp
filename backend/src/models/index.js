@@ -8,3 +8,4 @@ export { Application } from './Application.js';
 export { Deal } from './Deal.js';
 export { Notification } from './Notification.js';
 export { Subscription, PLAN_IDS } from './Subscription.js';
+export { NewsletterSubscriber } from './NewsletterSubscriber.js';

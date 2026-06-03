@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
+import dynamic from 'next/dynamic';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { useQuery } from '@tanstack/react-query';
@@ -10,13 +11,23 @@ import { Header } from '@/components/Layout/Header';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
 import { Modal } from '@/components/ui/Modal';
-import { Input } from '@/components/ui/Input';
+import {
+  BrowseFiltersPanel,
+  BrowseFiltersToolbar,
+  buildBrowseQueryParams,
+  countBrowseFilters,
+  type BrowseFilterFields,
+} from '@/components/browse/BrowseFilters';
+import type { EventMapItem } from '@/components/events/EventMap';
+
+const EventMap = dynamic(() => import('@/components/events/EventMap'), { ssr: false });
 
 type VenueProfileData = {
   venueName?: string;
   avatarUrl?: string;
   images?: string[];
-  location?: { city?: string; region?: string; country?: string };
+  description?: string;
+  location?: { city?: string; region?: string; country?: string; latitude?: number; longitude?: number };
 };
 
 type EventItem = {
@@ -40,21 +51,48 @@ type Res = {
 export default function EventsPage() {
   const { user } = useAuth();
   const [page, setPage] = useState(1);
-  const [filters, setFilters] = useState<{ lookingFor?: string; dateFrom?: string; dateTo?: string }>({});
+  const [filters, setFilters] = useState<BrowseFilterFields>({});
+  const [searchInput, setSearchInput] = useState('');
+  const [tagsInput, setTagsInput] = useState('');
+  const [filtersOpen, setFiltersOpen] = useState(false);
+  const [showMap, setShowMap] = useState(false);
   const [selectedEvent, setSelectedEvent] = useState<EventItem | null>(null);
 
   const isMusician = user?.role === 'MUSICIAN';
 
-  const params: Record<string, string> = { page: String(page), limit: '12' };
-  if (filters.lookingFor) params.lookingFor = filters.lookingFor;
-  if (filters.dateFrom) params.dateFrom = filters.dateFrom;
-  if (filters.dateTo) params.dateTo = filters.dateTo;
+  const queryParams = useMemo(
+    () => buildBrowseQueryParams(page, searchInput, tagsInput, filters),
+    [page, searchInput, tagsInput, filters]
+  );
+
+  const mapQueryParams = useMemo(
+    () => buildBrowseQueryParams(1, searchInput, tagsInput, filters, '200'),
+    [searchInput, tagsInput, filters]
+  );
+
+  const activeFilterCount = useMemo(
+    () => countBrowseFilters(searchInput, tagsInput, filters),
+    [searchInput, tagsInput, filters]
+  );
 
   const { data, isLoading } = useQuery({
-    queryKey: ['events', page, filters],
-    queryFn: () => apiRequest<Res>('/api/events', { params }),
-    enabled: !!user,
+    queryKey: ['events', queryParams],
+    queryFn: () => apiRequest<Res>('/api/events', { params: queryParams }),
+    enabled: !!user && isMusician,
   });
+
+  const { data: mapData } = useQuery({
+    queryKey: ['events-map', mapQueryParams],
+    queryFn: () => apiRequest<Res>('/api/events', { params: mapQueryParams }),
+    enabled: !!user && isMusician && showMap,
+  });
+
+  function resetFilters() {
+    setFilters({});
+    setSearchInput('');
+    setTagsInput('');
+    setPage(1);
+  }
 
   if (!user) {
     return (
@@ -85,48 +123,51 @@ export default function EventsPage() {
     <div className="flex min-h-screen flex-col bg-zinc-950">
       <Header />
       <main className="mx-auto w-full max-w-7xl flex-1 px-3 py-6 sm:px-4 sm:py-8 lg:px-8">
-        <div className="mb-6 flex flex-col justify-between gap-2 sm:flex-row sm:items-center">
+        <div className="mb-6 flex flex-col justify-between gap-3 sm:flex-row sm:items-center">
           <div>
-            <h1 className="text-xl sm:text-2xl font-bold text-zinc-100">Browse Events</h1>
-            <p className="text-zinc-500 text-sm mt-1">Find gig opportunities from venues near you</p>
+            <h1 className="text-xl font-bold text-zinc-100 sm:text-2xl">Browse Events</h1>
+            <p className="mt-1 text-sm text-zinc-500">Find gig opportunities from venues near you</p>
           </div>
-          {data?.pagination && (
-            <span className="text-zinc-500 text-sm">{data.pagination.total} event{data.pagination.total !== 1 ? 's' : ''} found</span>
-          )}
+          <BrowseFiltersToolbar
+            showMapButton
+            showMap={showMap}
+            onToggleMap={() => setShowMap((v) => !v)}
+            filtersOpen={filtersOpen}
+            onToggleFilters={() => setFiltersOpen((v) => !v)}
+            activeFilterCount={activeFilterCount}
+            resultCount={data?.pagination.total}
+            resultLabel={data?.pagination.total === 1 ? 'event' : 'events'}
+          />
         </div>
 
-        {/* Filters */}
-        <div className="mb-6 grid gap-3 rounded-xl border border-zinc-800 bg-zinc-900/80 p-3 sm:mb-8 sm:p-4 sm:grid-cols-2 lg:flex lg:flex-wrap lg:items-end">
-          <Input
-            label="Looking For"
-            placeholder="e.g. Rock Band"
-            value={filters.lookingFor ?? ''}
-            onChange={(e) => setFilters((f) => ({ ...f, lookingFor: e.target.value || undefined }))}
-            className="lg:min-w-[160px]"
-          />
-          <Input
-            label="From date"
-            type="date"
-            value={filters.dateFrom ?? ''}
-            onChange={(e) => setFilters((f) => ({ ...f, dateFrom: e.target.value || undefined }))}
-            className="lg:min-w-[140px]"
-          />
-          <Input
-            label="To date"
-            type="date"
-            value={filters.dateTo ?? ''}
-            onChange={(e) => setFilters((f) => ({ ...f, dateTo: e.target.value || undefined }))}
-            className="lg:min-w-[140px]"
-          />
-          <Button
-            variant="secondary"
-            size="md"
-            onClick={() => { setFilters({}); setPage(1); }}
-            className="w-full sm:col-span-2 lg:w-auto lg:col-span-1"
-          >
-            Reset
-          </Button>
-        </div>
+        <BrowseFiltersPanel
+          open={filtersOpen}
+          activeFilterCount={activeFilterCount}
+          searchInput={searchInput}
+          tagsInput={tagsInput}
+          filters={filters}
+          onSearchChange={(value) => {
+            setSearchInput(value);
+            setPage(1);
+          }}
+          onTagsChange={(value) => {
+            setTagsInput(value);
+            setPage(1);
+          }}
+          onFiltersChange={(next) => {
+            setFilters(next);
+            setPage(1);
+          }}
+          onReset={resetFilters}
+          searchPlaceholder="Venue, title, description…"
+          tagsPlaceholder="rock, jazz, cover band…"
+        />
+
+        {showMap && (
+          <div className="mb-8">
+            <EventMap events={(mapData?.events ?? data?.events ?? []) as EventMapItem[]} />
+          </div>
+        )}
 
         {isLoading ? (
           <div className="grid gap-4 sm:gap-6 sm:grid-cols-2 lg:grid-cols-3">

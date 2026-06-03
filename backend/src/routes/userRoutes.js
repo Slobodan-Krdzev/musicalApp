@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { getProfile, getMyProfile, updateMyProfile, getMySubscription, listMusicians, listVenues } from '../controllers/userController.js';
+import { getProfile, getMyProfile, updateMyProfile, getMySubscription, getMyDashboardSummary, listMusicians, listVenues } from '../controllers/userController.js';
 import { authenticate } from '../middleware/auth.js';
 import { musicianProfileSchema, venueProfileSchema } from '../validators/profile.js';
 import { ValidationError } from '../utils/errors.js';
@@ -25,5 +25,6 @@ router.get('/profile/:id', getProfile);
 router.get('/me/profile', authenticate, getMyProfile);
 router.put('/me/profile', authenticate, validateProfileByRole(), updateMyProfile);
 router.get('/me/subscription', authenticate, getMySubscription);
+router.get('/me/summary', authenticate, getMyDashboardSummary);
 
 export default router;

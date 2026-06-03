@@ -2,12 +2,23 @@ import { Event, VenueProfile, MusicianProfile, User, Subscription } from '../mod
 import { NotFoundError, SubscriptionRequiredError, ForbiddenError } from '../utils/errors.js';
 import { matchAndNotifyMusicians } from '../services/eventMatchingService.js';
 import { emailService } from '../services/emailService.js';
+import {
+  parseTagsParam,
+  matchesSearch,
+  matchesTagsFilter,
+  matchesTimeRange,
+  paginateItems,
+} from '../services/browseFilterUtils.js';
 
 async function expireStaleEvents() {
   await Event.updateMany(
     { status: 'ACTIVE', activeTo: { $lt: new Date() } },
     { $set: { status: 'EXPIRED' } }
   );
+}
+
+function collectEventTags(event, venueProfile) {
+  return [...(event.lookingFor || []), ...(venueProfile?.gigTypes || []), ...(venueProfile?.interests || [])];
 }
 
 export async function listEvents(req, res, next) {
@@ -19,7 +30,19 @@ export async function listEvents(req, res, next) {
       return res.json({ success: true, events: [], pagination: { page: 1, limit: 12, total: 0, pages: 0 } });
     }
 
-    const { lookingFor, dateFrom, dateTo, venueId, page = 1, limit = 12 } = req.validated ?? {};
+    const {
+      q,
+      tags,
+      lookingFor,
+      dateFrom,
+      dateTo,
+      timeFrom,
+      timeTo,
+      venueId,
+      page = 1,
+      limit = 12,
+    } = req.validated ?? {};
+
     const filter = { status: 'ACTIVE' };
 
     if (lookingFor) filter.lookingFor = { $in: [lookingFor] };
@@ -30,25 +53,31 @@ export async function listEvents(req, res, next) {
     }
     if (venueId) filter.venueId = venueId;
 
-    const skip = (page - 1) * limit;
-    const [events, total] = await Promise.all([
-      Event.find(filter).sort({ date: 1 }).skip(skip).limit(limit).lean(),
-      Event.countDocuments(filter),
-    ]);
-
+    const events = await Event.find(filter).sort({ date: 1 }).lean();
     const venueIds = [...new Set(events.map((e) => e.venueId.toString()))];
     const venueProfiles = await VenueProfile.find({ userId: { $in: venueIds } }).lean();
     const venueMap = Object.fromEntries(venueProfiles.map((v) => [v.userId.toString(), v]));
 
-    const enriched = events.map((e) => ({
-      ...e,
-      venueProfile: venueMap[e.venueId.toString()] || null,
-    }));
+    const tagList = parseTagsParam(tags);
+    const filtered = events
+      .map((event) => ({
+        ...event,
+        venueProfile: venueMap[event.venueId.toString()] || null,
+      }))
+      .filter((event) => {
+        const venueProfile = event.venueProfile;
+        if (!matchesSearch(q, event.title, event.description, venueProfile?.venueName)) return false;
+        if (!matchesTagsFilter(tagList, collectEventTags(event, venueProfile))) return false;
+        if (!matchesTimeRange(event.date, timeFrom, timeTo)) return false;
+        return true;
+      });
+
+    const { items, pagination } = paginateItems(filtered, page, limit);
 
     res.json({
       success: true,
-      events: enriched,
-      pagination: { page, limit, total, pages: Math.ceil(total / limit) },
+      events: items,
+      pagination,
     });
   } catch (err) {
     next(err);

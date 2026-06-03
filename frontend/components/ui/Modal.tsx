@@ -10,10 +10,19 @@ type ModalProps = {
   title?: string;
   children: React.ReactNode;
   className?: string;
+  contentClassName?: string;
   position?: 'top' | 'center';
 };
 
-export function Modal({ open, onClose, title, children, className, position = 'top' }: ModalProps) {
+export function Modal({
+  open,
+  onClose,
+  title,
+  children,
+  className,
+  contentClassName,
+  position = 'top',
+}: ModalProps) {
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
@@ -70,7 +79,7 @@ export function Modal({ open, onClose, title, children, className, position = 't
             </button>
           </div>
         )}
-        <div className="flex-1 overflow-y-auto p-4 sm:p-5">{children}</div>
+        <div className={cn('flex-1 overflow-y-auto p-4 sm:p-5', contentClassName)}>{children}</div>
       </div>
     </div>
   );

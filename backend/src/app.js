@@ -12,6 +12,8 @@ import stripeRoutes from './routes/stripeRoutes.js';
 import adminRoutes from './routes/adminRoutes.js';
 import uploadRoutes from './routes/uploadRoutes.js';
 import offeringRoutes from './routes/offeringRoutes.js';
+import partyRoutes from './routes/partyRoutes.js';
+import newsletterRoutes from './routes/newsletterRoutes.js';
 import { webhook } from './controllers/stripeController.js';
 
 const app = express();
@@ -46,6 +48,8 @@ app.use('/api/stripe', stripeRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/upload', uploadRoutes);
 app.use('/api/offerings', offeringRoutes);
+app.use('/api/parties', partyRoutes);
+app.use('/api/newsletter', newsletterRoutes);
 
 app.get('/health', (req, res) => res.json({ ok: true }));
 

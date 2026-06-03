@@ -35,6 +35,7 @@ const venueProfileSchema = new mongoose.Schema(
       spotify: String,
     },
     contactPhone: String,
+    reservationPhone: String,
   },
   { timestamps: true }
 );

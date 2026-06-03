@@ -58,4 +58,5 @@ export const venueProfileSchema = z.object({
   stageDescription: z.string().max(2000).optional(),
   socialLinks: socialLinksSchema,
   contactPhone: z.string().max(30).optional(),
+  reservationPhone: z.string().max(30).optional(),
 });

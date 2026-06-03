@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { UnderDevelopmentModal } from '@/components/UnderDevelopmentModal';
 import { PublicNavbar } from '@/components/PublicNavbar';
+import { NewsletterSection } from '@/components/home/NewsletterSection';
 import { cn } from '@/lib/cn';
 
 export default function LandingPage() {
@@ -63,6 +64,17 @@ export default function LandingPage() {
                   )}
                 >
                   I&apos;m a Musician
+                </Link>
+              </div>
+              <div className="mt-4 flex w-full justify-center sm:w-auto">
+                <Link
+                  href="/parties"
+                  className={cn(
+                    'inline-flex w-full min-w-0 items-center justify-center rounded-full border border-violet-500/40 bg-violet-500/10 px-6 py-3 text-base font-medium text-violet-200 transition-colors',
+                    'hover:border-violet-400/50 hover:bg-violet-500/20 focus:outline-none focus:ring-2 focus:ring-violet-500 focus:ring-offset-2 focus:ring-offset-zinc-950 sm:min-w-[180px] sm:w-auto'
+                  )}
+                >
+                  I&apos;m looking for a party
                 </Link>
               </div>
             </div>
@@ -188,10 +200,7 @@ export default function LandingPage() {
           </div>
         </section>
 
-       
-
-        
-        
+        <NewsletterSection />
 
         {/* CTA */}
         <section className="relative overflow-hidden border-t border-zinc-800/60 bg-zinc-950 py-24 px-4">

@@ -1,6 +1,7 @@
 import { Application, Event, Offering, Deal, User, VenueProfile, MusicianProfile, Subscription } from '../models/index.js';
 import { NotFoundError, ForbiddenError, SubscriptionRequiredError } from '../utils/errors.js';
 import { createNotification } from '../services/notificationService.js';
+import { notifyFinalizedDeal } from '../services/partyService.js';
 import { emailService } from '../services/emailService.js';
 import { FRONTEND_URL } from '../config/env.js';
 
@@ -453,6 +454,12 @@ export async function finalizeApplication(req, res, next) {
           <p>You can now see full contact details in your dashboard.</p>
           ${btn(FRONTEND_URL + '/dashboard', 'Go to Dashboard')}
         `),
+      });
+    }
+
+    if (deal) {
+      notifyFinalizedDeal(deal._id).catch((err) => {
+        console.error('[Application] newsletter party notify failed:', err.message);
       });
     }
 

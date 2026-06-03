@@ -57,3 +57,19 @@ export async function markAllRead(req, res, next) {
     next(err);
   }
 }
+
+/**
+ * Delete one notification.
+ */
+export async function deleteNotification(req, res, next) {
+  try {
+    const { id } = req.params;
+    const result = await Notification.findOneAndDelete({ _id: id, userId: req.user._id });
+    if (!result) {
+      return res.status(404).json({ success: false, message: 'Notification not found' });
+    }
+    res.json({ success: true });
+  } catch (err) {
+    next(err);
+  }
+}

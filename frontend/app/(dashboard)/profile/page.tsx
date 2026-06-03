@@ -61,6 +61,7 @@ type VenueProfile = {
   stageDescription?: string;
   socialLinks?: { facebook?: string; instagram?: string; youtube?: string; spotify?: string };
   contactPhone?: string;
+  reservationPhone?: string;
 };
 
 type AnyProfile = MusicianProfile | VenueProfile;
@@ -440,6 +441,9 @@ export default function ProfileWizardPage() {
       if (isVenue && !(profile as VenueProfile).contactPhone?.trim()) {
         newErrors.contactPhone = 'Phone number is required';
       }
+      if (isVenue && !(profile as VenueProfile).reservationPhone?.trim()) {
+        newErrors.reservationPhone = 'Reservations phone is required';
+      }
     }
 
     if (currentStep === 'Equipment') {
@@ -500,6 +504,7 @@ export default function ProfileWizardPage() {
       stageDescription: p.stageDescription || '',
       socialLinks: p.socialLinks || undefined,
       contactPhone: p.contactPhone || '',
+      reservationPhone: p.reservationPhone || '',
     };
   }
 
@@ -855,33 +860,46 @@ export default function ProfileWizardPage() {
           {!isLoading && currentStep === 'Contact' && (
             <>
               <Input
-                label="Phone Number *"
-                value={(profile as MusicianProfile).contactPhone || ''}
+                label={isVenue ? 'Contact Phone *' : 'Phone Number *'}
+                value={
+                  isMusician
+                    ? (profile as MusicianProfile).contactPhone || ''
+                    : (profile as VenueProfile).contactPhone || ''
+                }
                 onChange={(e) => handleChange('contactPhone', e.target.value)}
                 error={errors.contactPhone}
                 placeholder="+1 234 567 890"
               />
+              {isVenue && (
+                <Input
+                  label="Reservations Phone *"
+                  value={(profile as VenueProfile).reservationPhone || ''}
+                  onChange={(e) => handleChange('reservationPhone', e.target.value)}
+                  error={errors.reservationPhone}
+                  placeholder="Public number for party bookings"
+                />
+              )}
               <Input
                 label="Instagram"
-                value={(profile as MusicianProfile).socialLinks?.instagram || ''}
+                value={profile.socialLinks?.instagram || ''}
                 onChange={(e) => handleSocialChange('instagram', e.target.value)}
                 placeholder="https://instagram.com/yourprofile"
               />
               <Input
                 label="Facebook"
-                value={(profile as MusicianProfile).socialLinks?.facebook || ''}
+                value={profile.socialLinks?.facebook || ''}
                 onChange={(e) => handleSocialChange('facebook', e.target.value)}
                 placeholder="https://facebook.com/yourpage"
               />
               <Input
                 label="YouTube"
-                value={(profile as MusicianProfile).socialLinks?.youtube || ''}
+                value={profile.socialLinks?.youtube || ''}
                 onChange={(e) => handleSocialChange('youtube', e.target.value)}
                 placeholder="https://youtube.com/@yourchannel"
               />
               <Input
                 label="Spotify"
-                value={(profile as MusicianProfile).socialLinks?.spotify || ''}
+                value={profile.socialLinks?.spotify || ''}
                 onChange={(e) => handleSocialChange('spotify', e.target.value)}
                 placeholder="https://open.spotify.com/artist/..."
               />

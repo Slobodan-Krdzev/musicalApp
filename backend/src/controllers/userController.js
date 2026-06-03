@@ -2,6 +2,7 @@ import { User, MusicianProfile, VenueProfile, Subscription } from '../models/ind
 import { ROLES } from '../models/User.js';
 import { NotFoundError } from '../utils/errors.js';
 import { emailService } from '../services/emailService.js';
+import { getDashboardSummary as buildDashboardSummary } from '../services/dashboardSummaryService.js';
 
 export async function listMusicians(req, res, next) {
   try {
@@ -138,7 +139,25 @@ export async function updateMyProfile(req, res, next) {
 export async function getMySubscription(req, res, next) {
   try {
     const sub = await Subscription.findOne({ userId: req.user._id });
-    res.json({ success: true, subscription: sub || null });
+    if (!sub) {
+      return res.json({ success: true, subscription: null });
+    }
+    res.json({
+      success: true,
+      subscription: { ...sub.toObject(), ...sub.getAccessState() },
+    });
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function getMyDashboardSummary(req, res, next) {
+  try {
+    const summary = await buildDashboardSummary(req.user._id, req.user.role);
+    if (!summary) {
+      return res.json({ success: true, summary: null });
+    }
+    res.json({ success: true, summary });
   } catch (err) {
     next(err);
   }

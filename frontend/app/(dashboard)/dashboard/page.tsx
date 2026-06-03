@@ -11,6 +11,16 @@ import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
 import { Input } from '@/components/ui/Input';
 import { Modal } from '@/components/ui/Modal';
+import { RenewSubscriptionBanner } from '@/components/subscription/RenewSubscriptionBanner';
+import { SubscriptionPlans } from '@/components/subscription/SubscriptionPlans';
+import {
+  openBillingPortal,
+  fetchInvoices,
+  cancelSubscription,
+  resumeSubscription,
+  SUBSCRIPTION_PLANS,
+  type Invoice,
+} from '@/lib/subscription';
 
 // ── Types ──
 
@@ -76,6 +86,9 @@ type Sub = {
   status: string;
   currentPeriodEnd?: string;
   trialEnd?: string;
+  cancelAtPeriodEnd?: boolean;
+  hasAccess?: boolean;
+  isExpired?: boolean;
 };
 
 type MusicianProfile = {
@@ -113,14 +126,57 @@ type VenueProfile = {
   stageDescription?: string;
   socialLinks?: { facebook?: string; instagram?: string; youtube?: string; spotify?: string };
   contactPhone?: string;
+  reservationPhone?: string;
   paymentPreferences?: string;
 };
 
 type AnyProfile = MusicianProfile | VenueProfile;
 
-type SidebarTab = 'notifications' | 'events' | 'profile' | 'media' | 'links' | 'subscription';
+type SidebarTab = 'summary' | 'notifications' | 'events' | 'profile' | 'media' | 'links' | 'subscription';
 
-const SIDEBAR_ITEMS: { key: SidebarTab; label: string }[] = [
+type DashboardSummary = {
+  listingsCreated: number;
+  listingsLabel: string;
+  finalizedCount: number;
+  approximateRevenue: number | null;
+  showRevenue: boolean;
+  favoritePartnerLabel: string;
+  favoritePartner: {
+    userId: string;
+    name: string;
+    type: 'musician' | 'venue';
+    dealCount: number;
+    avatarUrl?: string | null;
+  } | null;
+  finalizedGigs: {
+    id: string;
+    title: string;
+    date: string | null;
+    completedAt: string;
+    entityType: 'EVENT' | 'OFFERING';
+    price: number;
+    partner: {
+      userId: string;
+      name: string;
+      type: 'musician' | 'venue';
+      avatarUrl?: string | null;
+    };
+    musicianName: string;
+    venueName: string;
+  }[];
+  revenueItems: {
+    id: string;
+    title: string;
+    date: string | null;
+    completedAt: string;
+    amount: number;
+    partnerName: string;
+    partnerUserId: string;
+  }[];
+};
+
+const SIDEBAR_ITEMS: { key: SidebarTab; label: string; musicianVenueOnly?: boolean }[] = [
+  { key: 'summary', label: 'Summary', musicianVenueOnly: true },
   { key: 'notifications', label: 'Notifications' },
   { key: 'events', label: 'My Events' },
   { key: 'profile', label: 'My Profile' },
@@ -188,7 +244,16 @@ function CreditCardIcon({ className }: { className?: string }) {
   );
 }
 
+function ChartBarIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 013 19.875v-6.75zM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V8.625zM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V4.125z" />
+    </svg>
+  );
+}
+
 const SIDEBAR_ICONS: Record<SidebarTab, (props: { className?: string }) => JSX.Element> = {
+  summary: ChartBarIcon,
   notifications: BellIcon,
   events: CalendarIcon,
   profile: UserIcon,
@@ -202,12 +267,17 @@ const SIDEBAR_ICONS: Record<SidebarTab, (props: { className?: string }) => JSX.E
 export default function DashboardPage() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
-  const [activeTab, setActiveTab] = useState<SidebarTab>('notifications');
+  const [activeTab, setActiveTab] = useState<SidebarTab>('summary');
   const avatarInputRef = useRef<HTMLInputElement>(null);
   const [avatarUploading, setAvatarUploading] = useState(false);
 
   const isVenue = user?.role === 'VENUE';
   const isMusician = user?.role === 'MUSICIAN';
+  const showSummaryTab = isVenue || isMusician;
+
+  const visibleSidebarItems = SIDEBAR_ITEMS.filter(
+    (item) => !item.musicianVenueOnly || showSummaryTab
+  );
 
   const [showCreateEvent, setShowCreateEvent] = useState(false);
   const [createEventDate, setCreateEventDate] = useState('');
@@ -228,6 +298,7 @@ export default function DashboardPage() {
     queryKey: ['notifications'],
     queryFn: () => apiRequest<{ notifications: Notif[]; unreadCount: number }>('/api/notifications?limit=50'),
     enabled: !!user,
+    refetchInterval: 15000,
   });
 
   const { data: subData } = useQuery({
@@ -254,6 +325,12 @@ export default function DashboardPage() {
     enabled: !!user,
   });
 
+  const { data: summaryData, isLoading: summaryLoading } = useQuery({
+    queryKey: ['dashboard-summary'],
+    queryFn: () => apiRequest<{ summary: DashboardSummary | null }>('/api/users/me/summary').then((r) => r.summary),
+    enabled: !!user && showSummaryTab,
+  });
+
   // ── Mutations ──
 
   const updateProfileMutation = useMutation({
@@ -267,12 +344,26 @@ export default function DashboardPage() {
 
   const markReadMutation = useMutation({
     mutationFn: (id: string) => apiRequest(`/api/notifications/${id}/read`, { method: 'PATCH' }),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['notifications'] }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['notifications'] });
+      queryClient.invalidateQueries({ queryKey: ['notifications-count'] });
+    },
   });
 
   const markAllReadMutation = useMutation({
     mutationFn: () => apiRequest('/api/notifications/read-all', { method: 'POST' }),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['notifications'] }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['notifications'] });
+      queryClient.invalidateQueries({ queryKey: ['notifications-count'] });
+    },
+  });
+
+  const deleteNotifMutation = useMutation({
+    mutationFn: (id: string) => apiRequest(`/api/notifications/${id}`, { method: 'DELETE' }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['notifications'] });
+      queryClient.invalidateQueries({ queryKey: ['notifications-count'] });
+    },
   });
 
   // ── Avatar upload ──
@@ -303,6 +394,39 @@ export default function DashboardPage() {
     : '';
 
   const unreadCount = notifsData?.unreadCount ?? 0;
+  const hasActiveSubscription =
+    !!subData && (subData.hasAccess ?? (subData.status === 'active' || subData.status === 'trialing'));
+
+  const [checkoutNotice, setCheckoutNotice] = useState<'success' | 'cancelled' | null>(null);
+
+  // Handle returns from Stripe Checkout / billing portal and deep links from emails.
+  // Read from window (not useSearchParams) to avoid requiring a Suspense boundary on this page.
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const params = new URLSearchParams(window.location.search);
+    const subParam = params.get('subscription');
+    const tabParam = params.get('tab');
+
+    if (tabParam === 'subscription') setActiveTab('subscription');
+    if (tabParam === 'summary' && showSummaryTab) setActiveTab('summary');
+    if (tabParam === 'notifications') setActiveTab('notifications');
+
+    if (subParam === 'success' || subParam === 'cancelled') {
+      setActiveTab('subscription');
+      setCheckoutNotice(subParam);
+      // Stripe confirms via webhook; refetch so the UI reflects the new status once synced.
+      queryClient.invalidateQueries({ queryKey: ['subscription'] });
+      params.delete('subscription');
+      const qs = params.toString();
+      window.history.replaceState(null, '', `${window.location.pathname}${qs ? `?${qs}` : ''}`);
+    }
+  }, [queryClient, showSummaryTab]);
+
+  useEffect(() => {
+    if (user && !showSummaryTab && activeTab === 'summary') {
+      setActiveTab('notifications');
+    }
+  }, [user, showSummaryTab, activeTab]);
 
   return (
     <div className="space-y-6 animate-in fade-in duration-300">
@@ -329,6 +453,9 @@ export default function DashboardPage() {
           }}
         />
       )}
+
+      {/* Renewal prompt when the subscription has ended */}
+      <RenewSubscriptionBanner sub={subData ?? null} />
 
       {/* ── Welcome Header ── */}
       <div className="flex items-center gap-3 sm:gap-4">
@@ -359,17 +486,35 @@ export default function DashboardPage() {
           <input ref={avatarInputRef} type="file" accept="image/*" className="hidden" onChange={handleAvatarUpload} />
         </div>
         <div className="min-w-0">
-          <h1 className="truncate text-lg sm:text-2xl font-bold text-zinc-100">
-            Welcome back{profileName ? `, ${profileName}` : ''}
+          <h1 className="flex items-center gap-2 truncate text-lg font-bold text-zinc-100 sm:text-2xl">
+            <span className="truncate">
+              Welcome back{profileName ? `, ${profileName}` : ''}
+            </span>
+            {hasActiveSubscription && (
+              <span className="group relative inline-flex shrink-0" title="Subscription active">
+                <span className="flex h-5 w-5 items-center justify-center rounded-full bg-emerald-500/20 ring-1 ring-emerald-500/40">
+                  <svg className="h-3 w-3 text-emerald-400" viewBox="0 0 20 20" fill="currentColor" aria-hidden>
+                    <path
+                      fillRule="evenodd"
+                      d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                      clipRule="evenodd"
+                    />
+                  </svg>
+                </span>
+                <span className="pointer-events-none absolute -bottom-8 left-1/2 z-10 hidden -translate-x-1/2 whitespace-nowrap rounded-md bg-zinc-800 px-2 py-1 text-xs font-medium text-zinc-200 shadow-lg group-hover:block">
+                  Subscription active
+                </span>
+              </span>
+            )}
           </h1>
-          <p className="truncate text-xs sm:text-sm text-zinc-400">{user?.email}</p>
+          <p className="truncate text-xs text-zinc-400 sm:text-sm">{user?.email}</p>
         </div>
       </div>
 
       {/* Mobile tab bar — horizontal scroll */}
       <nav className="md:hidden -mx-3 sm:-mx-4 overflow-x-auto px-3 sm:px-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         <ul className="flex min-w-max items-center gap-2">
-          {SIDEBAR_ITEMS.map(({ key, label }) => {
+          {visibleSidebarItems.map(({ key, label }) => {
             const Icon = SIDEBAR_ICONS[key];
             const isActive = activeTab === key;
             return (
@@ -404,7 +549,7 @@ export default function DashboardPage() {
           <Card className="sticky top-20">
             <CardContent className="p-2">
               <ul className="space-y-1">
-                {SIDEBAR_ITEMS.map(({ key, label }) => {
+                {visibleSidebarItems.map(({ key, label }) => {
                   const Icon = SIDEBAR_ICONS[key];
                   const isActive = activeTab === key;
                   return (
@@ -437,12 +582,17 @@ export default function DashboardPage() {
         {/* Content */}
         <div className="flex-1 min-w-0">
           <div className="animate-in fade-in slide-in-from-right-2 duration-200" key={activeTab}>
+            {activeTab === 'summary' && showSummaryTab && (
+              <SummaryPanel summary={summaryData ?? null} isLoading={summaryLoading} isVenue={!!isVenue} />
+            )}
             {activeTab === 'notifications' && (
               <NotificationsPanel
                 notifications={notifsData?.notifications || []}
                 unreadCount={unreadCount}
                 onMarkRead={(id) => markReadMutation.mutate(id)}
                 onMarkAllRead={() => markAllReadMutation.mutate()}
+                onDelete={(id) => deleteNotifMutation.mutate(id)}
+                deletingId={deleteNotifMutation.isPending ? (deleteNotifMutation.variables as string) : null}
               />
             )}
             {activeTab === 'events' && (
@@ -486,11 +636,260 @@ export default function DashboardPage() {
                 isUpdating={updateProfileMutation.isPending}
               />
             )}
-            {activeTab === 'subscription' && <SubscriptionPanel sub={subData ?? null} />}
+            {activeTab === 'subscription' && (
+              <SubscriptionPanel sub={subData ?? null} notice={checkoutNotice} onDismissNotice={() => setCheckoutNotice(null)} />
+            )}
           </div>
         </div>
       </div>
     </div>
+  );
+}
+
+// ══════════════════════════════════════
+// SUMMARY PANEL
+// ══════════════════════════════════════
+
+function formatSummaryRevenue(amount: number) {
+  return new Intl.NumberFormat(undefined, {
+    style: 'currency',
+    currency: 'EUR',
+    maximumFractionDigits: 0,
+  }).format(amount);
+}
+
+function formatSummaryDate(value: string | null | undefined) {
+  if (!value) return '—';
+  return new Date(value).toLocaleDateString(undefined, {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+  });
+}
+
+function SummaryStatCard({
+  label,
+  value,
+  hint,
+  accent,
+  onDetails,
+  detailsDisabled,
+}: {
+  label: string;
+  value: string | number;
+  hint?: string;
+  accent?: 'violet' | 'emerald' | 'sky' | 'amber';
+  onDetails?: () => void;
+  detailsDisabled?: boolean;
+}) {
+  const accentClasses = {
+    violet: 'border-violet-500/20 bg-violet-500/5 text-violet-300',
+    emerald: 'border-emerald-500/20 bg-emerald-500/5 text-emerald-300',
+    sky: 'border-sky-500/20 bg-sky-500/5 text-sky-300',
+    amber: 'border-amber-500/20 bg-amber-500/5 text-amber-300',
+  }[accent ?? 'violet'];
+
+  const detailsClasses = {
+    violet: 'border-violet-500/25 bg-violet-500/10 text-violet-200 hover:bg-violet-500/20 disabled:opacity-40',
+    emerald: 'border-emerald-500/25 bg-emerald-500/10 text-emerald-200 hover:bg-emerald-500/20 disabled:opacity-40',
+    sky: 'border-sky-500/25 bg-sky-500/10 text-sky-200 hover:bg-sky-500/20 disabled:opacity-40',
+    amber: 'border-amber-500/25 bg-amber-500/10 text-amber-200 hover:bg-amber-500/20 disabled:opacity-40',
+  }[accent ?? 'violet'];
+
+  return (
+    <div className={`flex flex-col rounded-2xl border p-5 ${accentClasses}`}>
+      <p className="text-xs font-semibold uppercase tracking-wider text-zinc-500">{label}</p>
+      <p className="mt-2 text-3xl font-bold text-zinc-50">{value}</p>
+      {hint && <p className="mt-1 text-xs text-zinc-500">{hint}</p>}
+      {onDetails && (
+        <button
+          type="button"
+          onClick={onDetails}
+          disabled={detailsDisabled}
+          className={`mt-4 inline-flex w-full items-center justify-center gap-2 rounded-xl border px-3 py-2 text-sm font-medium transition-colors ${detailsClasses}`}
+        >
+          <svg className="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5} aria-hidden>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 6.75h12M8.25 12h12m-12 5.25h12M3.75 6.75h.007v.008H3.75V6.75zm0 5.25h.007v.008H3.75v-.008zm0 5.25h.007v.008H3.75v-.008z" />
+          </svg>
+          Details
+        </button>
+      )}
+    </div>
+  );
+}
+
+function SummaryPartnerAvatar({
+  name,
+  avatarUrl,
+  size = 'md',
+}: {
+  name: string;
+  avatarUrl?: string | null;
+  size?: 'sm' | 'md';
+}) {
+  const dim = size === 'sm' ? 'h-10 w-10' : 'h-14 w-14';
+  const text = size === 'sm' ? 'text-sm' : 'text-lg';
+  return (
+    <div className={`relative shrink-0 overflow-hidden rounded-full border border-zinc-700 bg-zinc-800 ${dim}`}>
+      {avatarUrl ? (
+        <Image src={avatarUrl} alt={name} fill className="object-cover" unoptimized />
+      ) : (
+        <span className={`flex h-full w-full items-center justify-center font-bold text-zinc-400 ${text}`}>
+          {name[0]?.toUpperCase()}
+        </span>
+      )}
+    </div>
+  );
+}
+
+function SummaryPanel({
+  summary,
+  isLoading,
+  isVenue,
+}: {
+  summary: DashboardSummary | null;
+  isLoading: boolean;
+  isVenue: boolean;
+}) {
+  const [detailsModal, setDetailsModal] = useState<'gigs' | 'revenue' | null>(null);
+
+  return (
+    <>
+      <Card>
+        <CardHeader>
+          <h2 className="text-lg font-semibold text-zinc-100">Activity summary</h2>
+          <p className="text-sm text-zinc-500">
+            {isVenue ? 'Your venue performance at a glance' : 'Your musician activity at a glance'}
+          </p>
+        </CardHeader>
+        <CardContent>
+          {isLoading ? (
+            <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+              {[1, 2, 3].map((i) => (
+                <div key={i} className="h-28 animate-pulse rounded-2xl bg-zinc-800/60" />
+              ))}
+            </div>
+          ) : !summary ? (
+            <p className="text-sm text-zinc-500">Summary is not available for your account.</p>
+          ) : (
+            <div className="space-y-6">
+              <div className={`grid gap-4 sm:grid-cols-2 ${summary.showRevenue ? 'xl:grid-cols-3' : 'xl:grid-cols-2'}`}>
+                <SummaryStatCard
+                  label={`${summary.listingsLabel} created`}
+                  value={summary.listingsCreated}
+                  hint={isVenue ? 'Total events posted' : 'Total offerings posted'}
+                  accent="violet"
+                />
+                <SummaryStatCard
+                  label="Finalized gigs"
+                  value={summary.finalizedCount}
+                  hint="Completed deals"
+                  accent="emerald"
+                  onDetails={() => setDetailsModal('gigs')}
+                  detailsDisabled={summary.finalizedCount === 0}
+                />
+                {summary.showRevenue && (
+                  <SummaryStatCard
+                    label="Approx. revenue"
+                    value={formatSummaryRevenue(summary.approximateRevenue ?? 0)}
+                    hint="From agreed quotes on finalized gigs"
+                    accent="sky"
+                    onDetails={() => setDetailsModal('revenue')}
+                    detailsDisabled={(summary.approximateRevenue ?? 0) === 0}
+                  />
+                )}
+              </div>
+
+              <div className="rounded-2xl border border-zinc-800 bg-zinc-900/40 p-5 sm:p-6">
+                <p className="text-xs font-semibold uppercase tracking-wider text-zinc-500">
+                  {summary.favoritePartnerLabel}
+                </p>
+                {summary.favoritePartner ? (
+                  <div className="mt-4 flex items-center gap-4">
+                    <SummaryPartnerAvatar
+                      name={summary.favoritePartner.name}
+                      avatarUrl={summary.favoritePartner.avatarUrl}
+                    />
+                    <div>
+                      <p className="text-lg font-semibold text-zinc-100">{summary.favoritePartner.name}</p>
+                      <p className="text-sm text-zinc-500">
+                        {summary.favoritePartner.dealCount} finalized gig
+                        {summary.favoritePartner.dealCount !== 1 ? 's' : ''} together
+                      </p>
+                    </div>
+                  </div>
+                ) : (
+                  <p className="mt-3 text-sm text-zinc-500">
+                    No favorite {isVenue ? 'musician' : 'venue'} yet — complete your first gig to see who you work with most.
+                  </p>
+                )}
+              </div>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      <Modal
+        open={detailsModal === 'gigs'}
+        onClose={() => setDetailsModal(null)}
+        title="Finalized gigs"
+        className="max-w-2xl"
+        position="center"
+      >
+        {!summary?.finalizedGigs.length ? (
+          <p className="text-sm text-zinc-500">No finalized gigs yet.</p>
+        ) : (
+          <ul className="max-h-[60vh] space-y-3 overflow-y-auto pr-1">
+            {summary.finalizedGigs.map((gig) => (
+              <li key={gig.id} className="rounded-xl border border-zinc-800 bg-zinc-900/50 p-4">
+                <div className="flex flex-wrap items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="font-semibold text-zinc-100">{gig.title}</p>
+                    <p className="mt-1 text-sm text-zinc-400">
+                      {isVenue ? gig.musicianName : gig.venueName}
+                      {' · '}
+                      {formatSummaryDate(gig.date || gig.completedAt)}
+                    </p>
+                    <p className="mt-1 text-xs uppercase tracking-wide text-zinc-600">
+                      {gig.entityType === 'EVENT' ? 'Event' : 'Offering'}
+                    </p>
+                  </div>
+                  <p className="text-lg font-bold text-emerald-300">{formatSummaryRevenue(gig.price)}</p>
+                </div>
+              </li>
+            ))}
+          </ul>
+        )}
+      </Modal>
+
+      <Modal
+        open={detailsModal === 'revenue'}
+        onClose={() => setDetailsModal(null)}
+        title="Revenue breakdown"
+        className="max-w-2xl"
+        position="center"
+      >
+        {!summary?.revenueItems.length ? (
+          <p className="text-sm text-zinc-500">No revenue recorded yet.</p>
+        ) : (
+          <ul className="max-h-[60vh] space-y-3 overflow-y-auto pr-1">
+            {summary.revenueItems.map((item) => (
+              <li key={item.id} className="rounded-xl border border-zinc-800 bg-zinc-900/50 p-4">
+                <div className="flex flex-wrap items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="font-semibold text-zinc-100">{item.title}</p>
+                    <p className="mt-1 text-sm text-zinc-400">
+                      {item.partnerName} · {formatSummaryDate(item.date || item.completedAt)}
+                    </p>
+                  </div>
+                  <p className="text-lg font-bold text-sky-300">{formatSummaryRevenue(item.amount)}</p>
+                </div>
+              </li>
+            ))}
+          </ul>
+        )}
+      </Modal>
+    </>
   );
 }
 
@@ -503,11 +902,15 @@ function NotificationsPanel({
   unreadCount,
   onMarkRead,
   onMarkAllRead,
+  onDelete,
+  deletingId,
 }: {
   notifications: Notif[];
   unreadCount: number;
   onMarkRead: (id: string) => void;
   onMarkAllRead: () => void;
+  onDelete: (id: string) => void;
+  deletingId?: string | null;
 }) {
   const router = useRouter();
   const [expandedId, setExpandedId] = useState<string | null>(null);
@@ -558,53 +961,66 @@ function NotificationsPanel({
               return (
                 <div
                   key={n._id}
-                  className={`w-full text-left px-4 py-3 transition-colors hover:bg-zinc-800/30 ${
+                  className={`w-full px-4 py-3 transition-colors hover:bg-zinc-800/30 ${
                     !n.isRead ? 'bg-violet-500/5' : ''
                   }`}
                 >
-                  <button
-                    type="button"
-                    className="w-full text-left"
-                    onClick={() => {
-                      setExpandedId(isExpanded ? null : n._id);
-                      if (!n.isRead) onMarkRead(n._id);
-                    }}
-                  >
-                    <div className="flex items-start gap-3">
-                      <span className={`mt-1.5 w-2 h-2 rounded-full flex-shrink-0 transition-colors ${
-                        n.isRead ? 'bg-zinc-700' : 'bg-violet-500'
-                      }`} />
-                      <div className="flex-1 min-w-0">
-                        <p className={`text-sm transition-all duration-200 ${
-                          isExpanded ? 'text-zinc-200' : 'text-zinc-300 line-clamp-2'
-                        }`}>
-                          {n.message}
-                        </p>
-                        <p className="text-xs text-zinc-600 mt-1">
-                          {new Date(n.createdAt).toLocaleDateString(undefined, {
-                            month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit',
-                          })}
-                        </p>
-                      </div>
+                  <div className="flex items-start gap-3">
+                    <span className={`mt-1.5 h-2 w-2 flex-shrink-0 rounded-full transition-colors ${
+                      n.isRead ? 'bg-zinc-700' : 'bg-violet-500'
+                    }`} />
+                    <div className="min-w-0 flex-1">
+                      <p className={`text-sm transition-all duration-200 ${
+                        isExpanded ? 'text-zinc-200' : 'line-clamp-2 text-zinc-300'
+                      }`}>
+                        {n.message}
+                      </p>
+                      <p className="mt-1 text-xs text-zinc-600">
+                        {new Date(n.createdAt).toLocaleDateString(undefined, {
+                          month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit',
+                        })}
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setExpandedId(isExpanded ? null : n._id)}
+                      className="mt-0.5 flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg text-zinc-500 transition-colors hover:bg-zinc-800 hover:text-zinc-300"
+                      aria-label={isExpanded ? 'Collapse notification' : 'Expand notification'}
+                      aria-expanded={isExpanded}
+                    >
                       <svg
-                        className={`w-4 h-4 text-zinc-600 flex-shrink-0 mt-1 transition-transform duration-200 ${
-                          isExpanded ? 'rotate-180' : ''
-                        }`}
+                        className={`h-4 w-4 transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`}
                         fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}
                       >
                         <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
                       </svg>
-                    </div>
-                  </button>
+                    </button>
+                  </div>
 
-                  {isExpanded && action && (
-                    <div className="mt-2 ml-5 pl-3">
+                  {isExpanded && (
+                    <div className="mt-3 ml-5 flex flex-wrap items-center gap-2 pl-3">
+                      {!n.isRead && (
+                        <Button variant="secondary" size="sm" onClick={() => onMarkRead(n._id)}>
+                          Mark as read
+                        </Button>
+                      )}
                       <Button
+                        variant="ghost"
                         size="sm"
-                        onClick={() => router.push(action.href)}
+                        loading={deletingId === n._id}
+                        onClick={() => {
+                          onDelete(n._id);
+                          if (expandedId === n._id) setExpandedId(null);
+                        }}
+                        className="text-red-400 hover:bg-red-500/10 hover:text-red-300"
                       >
-                        {action.label}
+                        Delete
                       </Button>
+                      {action && (
+                        <Button size="sm" onClick={() => router.push(action.href)}>
+                          {action.label}
+                        </Button>
+                      )}
                     </div>
                   )}
                 </div>
@@ -1549,9 +1965,20 @@ function ProfilePanel({
           {editing ? (
             <div className="space-y-2 mt-1.5">
               <div>
-                <label className="text-xs text-zinc-600">Phone</label>
+                <label className="text-xs text-zinc-600">{isMusician ? 'Phone' : 'Contact phone'}</label>
                 <input className={inputClass} value={current.contactPhone || ''} onChange={(e) => updateDraft('contactPhone', e.target.value)} />
               </div>
+              {!isMusician && (
+                <div>
+                  <label className="text-xs text-zinc-600">Reservations phone</label>
+                  <input
+                    className={inputClass}
+                    value={(current as VenueProfile).reservationPhone || ''}
+                    onChange={(e) => updateDraft('reservationPhone', e.target.value)}
+                    placeholder="Public number for party bookings"
+                  />
+                </div>
+              )}
               <div>
                 <label className="text-xs text-zinc-600">Instagram</label>
                 <input className={inputClass} value={current.socialLinks?.instagram || ''} onChange={(e) => updateDraft('socialLinks', { ...current.socialLinks, instagram: e.target.value })} />
@@ -1571,7 +1998,10 @@ function ProfilePanel({
             </div>
           ) : (
             <>
-              {current.contactPhone && <InfoRow label="Phone" value={current.contactPhone} />}
+              {current.contactPhone && <InfoRow label={isMusician ? 'Phone' : 'Contact phone'} value={current.contactPhone} />}
+              {!isMusician && (current as VenueProfile).reservationPhone && (
+                <InfoRow label="Reservations phone" value={(current as VenueProfile).reservationPhone!} />
+              )}
               {current.socialLinks?.instagram && <InfoRow label="Instagram" value={current.socialLinks.instagram} />}
               {current.socialLinks?.facebook && <InfoRow label="Facebook" value={current.socialLinks.facebook} />}
               {current.socialLinks?.youtube && <InfoRow label="YouTube" value={current.socialLinks.youtube} />}
@@ -1884,42 +2314,255 @@ function LinksPanel({
 // SUBSCRIPTION PANEL
 // ══════════════════════════════════════
 
-function SubscriptionPanel({ sub }: { sub: Sub | null }) {
-  const hasActive = sub && (sub.status === 'active' || sub.status === 'trialing');
+function formatInvoiceAmount(amount: number, currency: string) {
+  try {
+    return new Intl.NumberFormat(undefined, { style: 'currency', currency: currency.toUpperCase() }).format(
+      amount / 100
+    );
+  } catch {
+    return `${(amount / 100).toFixed(2)} ${currency.toUpperCase()}`;
+  }
+}
+
+function InvoiceStatusBadge({ status }: { status: string | null }) {
+  const map: Record<string, string> = {
+    paid: 'border-emerald-500/30 bg-emerald-500/10 text-emerald-300',
+    open: 'border-amber-500/30 bg-amber-500/10 text-amber-300',
+    void: 'border-zinc-600/40 bg-zinc-700/20 text-zinc-400',
+    uncollectible: 'border-red-500/30 bg-red-500/10 text-red-300',
+    draft: 'border-zinc-600/40 bg-zinc-700/20 text-zinc-400',
+  };
+  const cls = (status && map[status]) || 'border-zinc-600/40 bg-zinc-700/20 text-zinc-400';
+  return (
+    <span className={`rounded-full border px-2.5 py-0.5 text-xs font-medium capitalize ${cls}`}>
+      {status ?? 'unknown'}
+    </span>
+  );
+}
+
+function SubscriptionPanel({
+  sub,
+  notice,
+  onDismissNotice,
+}: {
+  sub: Sub | null;
+  notice?: 'success' | 'cancelled' | null;
+  onDismissNotice?: () => void;
+}) {
+  const queryClient = useQueryClient();
+  const hasAccess = sub ? sub.hasAccess ?? (sub.status === 'active' || sub.status === 'trialing') : false;
+  const isExpired = !!sub && (sub.isExpired ?? !hasAccess);
+  const [portalLoading, setPortalLoading] = useState(false);
+  const [portalError, setPortalError] = useState<string | null>(null);
+  const [actionLoading, setActionLoading] = useState(false);
+  const [actionError, setActionError] = useState<string | null>(null);
+  const [showCancelConfirm, setShowCancelConfirm] = useState(false);
+
+  const hasBilling = !!sub?.planId && sub.planId !== 'free_trial';
+  const { data: invoices = [], isLoading: invoicesLoading } = useQuery<Invoice[]>({
+    queryKey: ['invoices'],
+    queryFn: fetchInvoices,
+    enabled: hasBilling,
+  });
+
+  async function handleManageBilling() {
+    setPortalError(null);
+    setPortalLoading(true);
+    try {
+      await openBillingPortal();
+    } catch (err) {
+      setPortalError(err instanceof Error ? err.message : 'Could not open billing portal');
+      setPortalLoading(false);
+    }
+  }
+
+  function refreshSubscription() {
+    queryClient.invalidateQueries({ queryKey: ['subscription'] });
+    queryClient.invalidateQueries({ queryKey: ['auth'] });
+  }
+
+  async function handleCancel() {
+    setActionError(null);
+    setActionLoading(true);
+    try {
+      await cancelSubscription();
+      setShowCancelConfirm(false);
+      refreshSubscription();
+    } catch (err) {
+      setActionError(err instanceof Error ? err.message : 'Could not cancel subscription');
+    } finally {
+      setActionLoading(false);
+    }
+  }
+
+  async function handleResume() {
+    setActionError(null);
+    setActionLoading(true);
+    try {
+      await resumeSubscription();
+      refreshSubscription();
+    } catch (err) {
+      setActionError(err instanceof Error ? err.message : 'Could not resume subscription');
+    } finally {
+      setActionLoading(false);
+    }
+  }
+
+  const periodEnd = sub?.currentPeriodEnd
+    ? new Date(sub.currentPeriodEnd).toLocaleDateString(undefined, { month: 'long', day: 'numeric', year: 'numeric' })
+    : null;
+
+  const activePlan = SUBSCRIPTION_PLANS.find((p) => p.id === sub?.planId);
+  const planLabel = activePlan?.name ?? (sub?.planId === 'free_trial' ? 'Free trial' : sub?.planId?.replace('_', ' ') ?? 'Plan');
 
   return (
     <div className="space-y-6">
+      {notice === 'success' && (
+        <div className="flex items-start justify-between gap-3 rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-4">
+          <p className="text-sm text-emerald-200">
+            Payment received. Your subscription is being activated — this can take a few seconds.
+          </p>
+          {onDismissNotice && (
+            <button type="button" onClick={onDismissNotice} className="text-emerald-300/70 hover:text-emerald-200" aria-label="Dismiss">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden>
+                <path d="M6 6l12 12M18 6L6 18" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+              </svg>
+            </button>
+          )}
+        </div>
+      )}
+      {notice === 'cancelled' && (
+        <div className="flex items-start justify-between gap-3 rounded-xl border border-zinc-700 bg-zinc-800/50 p-4">
+          <p className="text-sm text-zinc-300">Checkout was cancelled. You can pick a plan whenever you&apos;re ready.</p>
+          {onDismissNotice && (
+            <button type="button" onClick={onDismissNotice} className="text-zinc-500 hover:text-zinc-300" aria-label="Dismiss">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden>
+                <path d="M6 6l12 12M18 6L6 18" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+              </svg>
+            </button>
+          )}
+        </div>
+      )}
+
       <Card>
-        <CardHeader>
-          <h2 className="text-lg font-semibold text-zinc-100">Subscription</h2>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          {sub ? (
-            <>
-              <div className="flex items-center gap-3">
-                <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${
-                  hasActive ? 'bg-emerald-500/15' : 'bg-zinc-800'
-                }`}>
-                  <CreditCardIcon className={`w-6 h-6 ${hasActive ? 'text-emerald-400' : 'text-zinc-500'}`} />
-                </div>
-                <div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-zinc-100 font-semibold capitalize">{sub.planId.replace('_', ' ')}</span>
-                    <Badge variant={hasActive ? 'success' : 'warning'}>{sub.status}</Badge>
+        <CardContent className="p-0">
+          {sub && hasAccess ? (
+            <div className="overflow-hidden">
+              <div className="relative border-b border-emerald-500/20 bg-gradient-to-br from-emerald-500/15 via-zinc-900 to-violet-500/10 p-6 sm:p-8">
+                <div className="pointer-events-none absolute -right-8 -top-8 h-32 w-32 rounded-full bg-emerald-500/10 blur-2xl" aria-hidden />
+                <div className="relative flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between">
+                  <div className="flex items-start gap-4">
+                    <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-emerald-500/20 ring-1 ring-emerald-500/30">
+                      <svg className="h-7 w-7 text-emerald-400" viewBox="0 0 20 20" fill="currentColor" aria-hidden>
+                        <path
+                          fillRule="evenodd"
+                          d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                          clipRule="evenodd"
+                        />
+                      </svg>
+                    </div>
+                    <div>
+                      <p className="text-xs font-semibold uppercase tracking-wider text-emerald-300/80">Active plan</p>
+                      <div className="mt-1 flex flex-wrap items-center gap-2">
+                        <h2 className="text-2xl font-bold capitalize text-zinc-50">{planLabel}</h2>
+                        <Badge variant="success">{sub.status}</Badge>
+                      </div>
+                      {activePlan && (
+                        <p className="mt-1 text-sm text-zinc-400">
+                          {activePlan.price}
+                          <span className="text-zinc-500">{activePlan.cadence}</span>
+                        </p>
+                      )}
+                      {periodEnd && (
+                        <p className="mt-3 text-sm text-zinc-300">
+                          {sub.status === 'trialing'
+                            ? `Trial ends ${periodEnd}`
+                            : sub.cancelAtPeriodEnd
+                              ? `Access until ${periodEnd} · won't renew`
+                              : `Renews ${periodEnd}`}
+                        </p>
+                      )}
+                    </div>
                   </div>
-                  {sub.currentPeriodEnd && (
-                    <p className="text-zinc-500 text-sm">
-                      {sub.status === 'trialing' ? 'Trial ends' : 'Renews'}: {new Date(sub.currentPeriodEnd).toLocaleDateString(undefined, { month: 'long', day: 'numeric', year: 'numeric' })}
-                    </p>
+                  {sub.planId !== 'free_trial' && (
+                    <div className="flex flex-wrap gap-2 sm:justify-end">
+                      <Button variant="secondary" size="sm" loading={portalLoading} onClick={handleManageBilling}>
+                        Manage billing
+                      </Button>
+                      {!sub.cancelAtPeriodEnd && sub.status !== 'trialing' && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setActionError(null);
+                            setShowCancelConfirm(true);
+                          }}
+                          className="rounded-lg px-3 py-1.5 text-sm font-medium text-red-400 transition-colors hover:bg-red-500/10 hover:text-red-300"
+                        >
+                          Cancel
+                        </button>
+                      )}
+                    </div>
                   )}
                 </div>
               </div>
-            </>
+
+              {activePlan && (
+                <div className="border-b border-zinc-800/80 px-6 py-5 sm:px-8">
+                  <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-zinc-500">Included</p>
+                  <ul className="grid gap-2 sm:grid-cols-2">
+                    {activePlan.features.map((feature) => (
+                      <li key={feature} className="flex items-center gap-2 text-sm text-zinc-300">
+                        <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-violet-500/15">
+                          <svg className="h-3 w-3 text-violet-400" viewBox="0 0 20 20" fill="currentColor" aria-hidden>
+                            <path
+                              fillRule="evenodd"
+                              d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                              clipRule="evenodd"
+                            />
+                          </svg>
+                        </span>
+                        {feature}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+              {sub.cancelAtPeriodEnd && (
+                <div className="space-y-3 border-b border-zinc-800/80 px-6 py-5 sm:px-8">
+                  <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-4">
+                    <p className="text-sm text-amber-200">
+                      Your plan is set to cancel{periodEnd ? ` on ${periodEnd}` : ' at the end of the period'} and
+                      won&apos;t renew. You still have access until then.
+                    </p>
+                    <Button variant="secondary" size="sm" className="mt-3" loading={actionLoading} onClick={handleResume}>
+                      Resume subscription
+                    </Button>
+                  </div>
+                </div>
+              )}
+
+              {(portalError || actionError) && (
+                <div className="px-6 py-4 sm:px-8">
+                  {portalError && <p className="text-sm text-red-400">{portalError}</p>}
+                  {actionError && <p className="text-sm text-red-400">{actionError}</p>}
+                </div>
+              )}
+            </div>
           ) : (
-            <div className="text-center py-6">
-              <CreditCardIcon className="w-12 h-12 text-zinc-700 mx-auto mb-3" />
-              <p className="text-zinc-500 text-sm">No active subscription.</p>
-              <Button size="sm" className="mt-3">View plans</Button>
+            <div className="space-y-4 p-6 sm:p-8">
+              <div className="flex items-center gap-3">
+                <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-zinc-800">
+                  <CreditCardIcon className="h-6 w-6 text-zinc-500" />
+                </div>
+                <div>
+                  <p className="font-semibold text-zinc-100">
+                    {isExpired ? 'Your subscription has ended' : 'No active subscription'}
+                  </p>
+                  <p className="text-sm text-zinc-500">Choose a plan below to {isExpired ? 'renew' : 'subscribe'}.</p>
+                </div>
+              </div>
+              <SubscriptionPlans ctaLabel={isExpired ? 'Renew' : 'Subscribe'} />
             </div>
           )}
         </CardContent>
@@ -1930,11 +2573,80 @@ function SubscriptionPanel({ sub }: { sub: Sub | null }) {
           <h2 className="text-lg font-semibold text-zinc-100">Billing History</h2>
         </CardHeader>
         <CardContent>
-          <div className="text-center py-6">
-            <p className="text-zinc-500 text-sm">No billing history yet.</p>
-          </div>
+          {!hasBilling ? (
+            <div className="py-6 text-center">
+              <p className="text-sm text-zinc-500">No billing history yet.</p>
+            </div>
+          ) : invoicesLoading ? (
+            <div className="py-6 text-center">
+              <p className="text-sm text-zinc-500">Loading invoices…</p>
+            </div>
+          ) : invoices.length === 0 ? (
+            <div className="py-6 text-center">
+              <p className="text-sm text-zinc-500">No invoices yet.</p>
+            </div>
+          ) : (
+            <ul className="divide-y divide-zinc-800">
+              {invoices.map((inv) => (
+                <li key={inv.id} className="flex flex-wrap items-center justify-between gap-3 py-3">
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium text-zinc-100">
+                      {formatInvoiceAmount(inv.amount, inv.currency)}
+                      {inv.number && <span className="ml-2 text-xs font-normal text-zinc-500">#{inv.number}</span>}
+                    </p>
+                    <p className="text-xs text-zinc-500">
+                      {inv.created
+                        ? new Date(inv.created).toLocaleDateString(undefined, {
+                            month: 'short',
+                            day: 'numeric',
+                            year: 'numeric',
+                          })
+                        : '—'}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <InvoiceStatusBadge status={inv.status} />
+                    {(inv.pdfUrl || inv.hostedInvoiceUrl) && (
+                      <a
+                        href={(inv.pdfUrl || inv.hostedInvoiceUrl)!}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-sm font-medium text-violet-400 hover:text-violet-300"
+                      >
+                        Receipt
+                      </a>
+                    )}
+                  </div>
+                </li>
+              ))}
+            </ul>
+          )}
         </CardContent>
       </Card>
+
+      <Modal
+        open={showCancelConfirm}
+        onClose={() => !actionLoading && setShowCancelConfirm(false)}
+        title="Cancel subscription?"
+        position="center"
+      >
+        <div className="space-y-4">
+          <p className="text-sm text-zinc-300">
+            Your subscription will stop renewing
+            {periodEnd ? `, and you'll keep access until ${periodEnd}.` : ' at the end of the current period.'} You
+            can resume anytime before then.
+          </p>
+          {actionError && <p className="text-sm text-red-400">{actionError}</p>}
+          <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+            <Button variant="secondary" size="sm" disabled={actionLoading} onClick={() => setShowCancelConfirm(false)}>
+              Keep subscription
+            </Button>
+            <Button variant="danger" size="sm" loading={actionLoading} onClick={handleCancel}>
+              Cancel subscription
+            </Button>
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 }

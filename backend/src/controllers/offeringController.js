@@ -3,6 +3,13 @@ import { NotFoundError, SubscriptionRequiredError } from '../utils/errors.js';
 import { matchAndNotifyVenues } from '../services/eventMatchingService.js';
 import { createNotification } from '../services/notificationService.js';
 import { emailService } from '../services/emailService.js';
+import {
+  parseTagsParam,
+  matchesSearch,
+  matchesTagsFilter,
+  matchesTimeRange,
+  paginateItems,
+} from '../services/browseFilterUtils.js';
 
 async function expireStaleOfferings() {
   await Offering.updateMany(
@@ -22,7 +29,20 @@ export async function listOfferings(req, res, next) {
       return res.json({ success: true, offerings: [], pagination: { page: 1, limit: 12, total: 0, pages: 0 } });
     }
 
-    const { genre, lookingFor, dateFrom, dateTo, musicianId, page = 1, limit = 12 } = req.validated ?? {};
+    const {
+      q,
+      tags,
+      genre,
+      lookingFor,
+      dateFrom,
+      dateTo,
+      timeFrom,
+      timeTo,
+      musicianId,
+      page = 1,
+      limit = 12,
+    } = req.validated ?? {};
+
     const filter = { status: 'ACTIVE' };
 
     if (genre) filter.genres = { $in: [genre] };
@@ -34,25 +54,39 @@ export async function listOfferings(req, res, next) {
     }
     if (musicianId) filter.musicianId = musicianId;
 
-    const skip = (page - 1) * limit;
-    const [offerings, total] = await Promise.all([
-      Offering.find(filter).sort({ date: 1 }).skip(skip).limit(limit).lean(),
-      Offering.countDocuments(filter),
-    ]);
-
+    const offerings = await Offering.find(filter).sort({ date: 1 }).lean();
     const musicianIds = [...new Set(offerings.map((o) => o.musicianId.toString()))];
     const musicianProfiles = await MusicianProfile.find({ userId: { $in: musicianIds } }).lean();
     const profileMap = Object.fromEntries(musicianProfiles.map((p) => [p.userId.toString(), p]));
 
-    const enriched = offerings.map((o) => ({
-      ...o,
-      musicianProfile: profileMap[o.musicianId.toString()] || null,
-    }));
+    const tagList = parseTagsParam(tags);
+    const filtered = offerings
+      .map((offering) => ({
+        ...offering,
+        musicianProfile: profileMap[offering.musicianId.toString()] || null,
+      }))
+      .filter((offering) => {
+        const musicianProfile = offering.musicianProfile;
+        if (!matchesSearch(q, offering.title, offering.description, musicianProfile?.bandName)) return false;
+        const entityTags = [
+          ...(offering.genres || []),
+          ...(offering.lookingFor || []),
+          ...(offering.interests || []),
+          ...(musicianProfile?.genres || []),
+          ...(musicianProfile?.interests || []),
+          ...(musicianProfile?.services || []),
+        ];
+        if (!matchesTagsFilter(tagList, entityTags)) return false;
+        if (!matchesTimeRange(offering.date, timeFrom, timeTo)) return false;
+        return true;
+      });
+
+    const { items, pagination } = paginateItems(filtered, page, limit);
 
     res.json({
       success: true,
-      offerings: enriched,
-      pagination: { page, limit, total, pages: Math.ceil(total / limit) },
+      offerings: items,
+      pagination,
     });
   } catch (err) {
     next(err);

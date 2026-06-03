@@ -13,11 +13,14 @@ export const createEventSchema = z.object({
 export const updateEventSchema = createEventSchema.partial();
 
 export const eventQuerySchema = z.object({
-  genre: z.string().optional(),
+  q: z.string().optional(),
+  tags: z.string().optional(),
   lookingFor: z.string().optional(),
   dateFrom: z.coerce.date().optional(),
   dateTo: z.coerce.date().optional(),
+  timeFrom: z.string().optional(),
+  timeTo: z.string().optional(),
   venueId: z.string().optional(),
   page: z.coerce.number().min(1).default(1),
-  limit: z.coerce.number().min(1).max(50).default(12),
+  limit: z.coerce.number().min(1).max(200).default(12),
 });

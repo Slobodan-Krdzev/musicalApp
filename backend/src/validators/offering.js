@@ -13,11 +13,15 @@ export const createOfferingSchema = z.object({
 export const updateOfferingSchema = createOfferingSchema.partial();
 
 export const offeringQuerySchema = z.object({
+  q: z.string().optional(),
+  tags: z.string().optional(),
   genre: z.string().optional(),
   lookingFor: z.string().optional(),
   dateFrom: z.coerce.date().optional(),
   dateTo: z.coerce.date().optional(),
+  timeFrom: z.string().optional(),
+  timeTo: z.string().optional(),
   musicianId: z.string().optional(),
   page: z.coerce.number().min(1).default(1),
-  limit: z.coerce.number().min(1).max(50).default(12),
+  limit: z.coerce.number().min(1).max(200).default(12),
 });
