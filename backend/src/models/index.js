@@ -6,6 +6,8 @@ export { Offering } from './Offering.js';
 export { Advert } from './Advert.js';
 export { Application } from './Application.js';
 export { Deal } from './Deal.js';
+export { DealMessage } from './DealMessage.js';
+export { DealChatReadState } from './DealChatReadState.js';
 export { Notification } from './Notification.js';
 export { Subscription, PLAN_IDS } from './Subscription.js';
 export { NewsletterSubscriber } from './NewsletterSubscriber.js';

@@ -154,3 +154,46 @@ export async function resendVerification(req, res, next) {
     next(err);
   }
 }
+
+export async function forgotPassword(req, res, next) {
+  try {
+    const { email } = req.validated;
+    const user = await User.findOne({ email });
+
+    if (user && !user.isSuspended) {
+      const rawToken = user.generatePasswordResetToken();
+      user.refreshToken = undefined;
+      await user.save();
+      try {
+        await emailService.sendPasswordResetEmail(user.email, rawToken);
+      } catch (err) {
+        console.error('[Auth] Password reset email failed:', err.message);
+      }
+    }
+
+    res.json({
+      success: true,
+      message: 'If an account exists for that email, a password reset link has been sent.',
+    });
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function resetPassword(req, res, next) {
+  try {
+    const { token, password } = req.validated;
+    const user = await User.findByPasswordResetToken(token);
+    if (!user) throw new ValidationError('Invalid or expired reset token');
+
+    user.password = password;
+    user.passwordResetToken = undefined;
+    user.passwordResetExpires = undefined;
+    user.refreshToken = undefined;
+    await user.save();
+
+    res.json({ success: true, message: 'Password updated successfully. You can now log in.' });
+  } catch (err) {
+    next(err);
+  }
+}

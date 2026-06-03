@@ -1,7 +1,7 @@
 'use client';
 
-import { useState } from 'react';
-import { useParams, useRouter } from 'next/navigation';
+import { useState, useEffect } from 'react';
+import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import Image from 'next/image';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { apiRequest } from '@/lib/api';
@@ -11,13 +11,16 @@ import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
 import { Card, CardContent, CardHeader } from '@/components/ui/Card';
 import { SocialLinksChips } from '@/components/SocialLinksChips';
+import { DealChatModal } from '@/components/deals/DealChatModal';
 
 export default function FinalizeApplicationPage() {
   const { id } = useParams<{ id: string }>();
   const { user } = useAuth();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const queryClient = useQueryClient();
   const [finalizing, setFinalizing] = useState(false);
+  const [chatOpen, setChatOpen] = useState(false);
 
   const { data, isLoading, refetch } = useQuery({
     queryKey: ['application', id],
@@ -35,6 +38,20 @@ export default function FinalizeApplicationPage() {
 
   const musicianProfile = isEvent ? applicantProfile : ownerProfile;
   const venueProfile = isEvent ? ownerProfile : applicantProfile;
+
+  const isApplicant = user && app && app.applicantId === user._id;
+  const partnerProfile = isApplicant ? ownerProfile : applicantProfile;
+  const partnerName = partnerProfile
+    ? (isEvent
+        ? (isApplicant ? partnerProfile.venueName : partnerProfile.bandName)
+        : (isApplicant ? partnerProfile.bandName : partnerProfile.venueName))
+    : 'Partner';
+
+  useEffect(() => {
+    if (isFinalized && searchParams.get('chat') === '1') {
+      setChatOpen(true);
+    }
+  }, [isFinalized, searchParams]);
 
   async function handleFinalize() {
     setFinalizing(true);
@@ -69,9 +86,19 @@ export default function FinalizeApplicationPage() {
               Back
             </button>
 
-            <div className="flex flex-wrap items-center gap-3">
-              <h1 className="text-xl sm:text-2xl font-bold text-zinc-100">{isFinalized ? 'Deal Complete' : 'Finalize Deal'}</h1>
-              <Badge variant={isFinalized ? 'success' : 'warning'}>{isFinalized ? 'FINALIZED' : 'ACCEPTED'}</Badge>
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div className="flex flex-wrap items-center gap-3">
+                <h1 className="text-xl sm:text-2xl font-bold text-zinc-100">{isFinalized ? 'Deal Finalized' : 'Finalize Deal'}</h1>
+                <Badge variant={isFinalized ? 'success' : 'warning'}>{isFinalized ? 'FINALIZED' : 'ACCEPTED'}</Badge>
+              </div>
+              {isFinalized && user && (
+                <Button variant="secondary" size="sm" onClick={() => setChatOpen(true)} className="gap-2">
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                  </svg>
+                  Chat
+                </Button>
+              )}
             </div>
 
             {/* Event/Offering info */}
@@ -116,13 +143,23 @@ export default function FinalizeApplicationPage() {
                   <svg className="w-8 h-8 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
                 </div>
                 <p className="text-emerald-400 font-semibold">Connection Successful!</p>
-                <p className="text-zinc-500 text-sm">Use the contact details above to coordinate.</p>
+                <p className="text-zinc-500 text-sm">Use the contact details above or open chat to coordinate.</p>
                 <Button variant="secondary" onClick={() => router.push('/dashboard')}>Back to Dashboard</Button>
               </div>
             )}
           </div>
         )}
       </main>
+
+      {isFinalized && user && id && (
+        <DealChatModal
+          open={chatOpen}
+          onClose={() => setChatOpen(false)}
+          applicationId={id}
+          currentUserId={user._id}
+          partnerName={partnerName || 'Partner'}
+        />
+      )}
     </div>
   );
 }

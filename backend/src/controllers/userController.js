@@ -3,6 +3,7 @@ import { ROLES } from '../models/User.js';
 import { NotFoundError } from '../utils/errors.js';
 import { emailService } from '../services/emailService.js';
 import { getDashboardSummary as buildDashboardSummary } from '../services/dashboardSummaryService.js';
+import { deleteUserAccount } from '../services/accountDeletionService.js';
 
 export async function listMusicians(req, res, next) {
   try {
@@ -158,6 +159,15 @@ export async function getMyDashboardSummary(req, res, next) {
       return res.json({ success: true, summary: null });
     }
     res.json({ success: true, summary });
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function deleteMyAccount(req, res, next) {
+  try {
+    await deleteUserAccount(req.user._id, req.validated.password);
+    res.json({ success: true, message: 'Account deleted successfully' });
   } catch (err) {
     next(err);
   }

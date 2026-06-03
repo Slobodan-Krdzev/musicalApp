@@ -30,6 +30,8 @@ const userSchema = new mongoose.Schema(
     isEmailVerified: { type: Boolean, default: false },
     emailVerificationToken: { type: String, select: false },
     emailVerificationExpires: { type: Date, select: false },
+    passwordResetToken: { type: String, select: false },
+    passwordResetExpires: { type: Date, select: false },
     refreshToken: { type: String, select: false },
   },
   { timestamps: true }
@@ -56,12 +58,27 @@ userSchema.methods.generateVerificationToken = function () {
   return token;
 };
 
+userSchema.methods.generatePasswordResetToken = function () {
+  const token = crypto.randomBytes(32).toString('hex');
+  this.passwordResetToken = crypto.createHash('sha256').update(token).digest('hex');
+  this.passwordResetExpires = new Date(Date.now() + 60 * 60 * 1000);
+  return token;
+};
+
 userSchema.statics.findByVerificationToken = function (rawToken) {
   const hashed = crypto.createHash('sha256').update(rawToken).digest('hex');
   return this.findOne({
     emailVerificationToken: hashed,
     emailVerificationExpires: { $gt: new Date() },
   }).select('+emailVerificationToken +emailVerificationExpires');
+};
+
+userSchema.statics.findByPasswordResetToken = function (rawToken) {
+  const hashed = crypto.createHash('sha256').update(rawToken).digest('hex');
+  return this.findOne({
+    passwordResetToken: hashed,
+    passwordResetExpires: { $gt: new Date() },
+  }).select('+passwordResetToken +passwordResetExpires +password');
 };
 
 export const User = mongoose.model('User', userSchema);

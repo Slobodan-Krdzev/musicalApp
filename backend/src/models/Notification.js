@@ -13,6 +13,7 @@ const notificationSchema = new mongoose.Schema(
         'APPLICATION_EXPIRED',
         'ENTITY_DEACTIVATED',
         'DEAL_CONFIRMED',
+        'DEAL_CHAT_MESSAGE',
         'SUBSCRIPTION_STARTED',
         'SUBSCRIPTION_EXPIRING',
         'SUBSCRIPTION_EXPIRED',

@@ -13,6 +13,7 @@ import { Input } from '@/components/ui/Input';
 import { Modal } from '@/components/ui/Modal';
 import { RenewSubscriptionBanner } from '@/components/subscription/RenewSubscriptionBanner';
 import { SubscriptionPlans } from '@/components/subscription/SubscriptionPlans';
+import { DeleteAccountPanel } from '@/components/account/DeleteAccountPanel';
 import {
   openBillingPortal,
   fetchInvoices,
@@ -265,7 +266,7 @@ const SIDEBAR_ICONS: Record<SidebarTab, (props: { className?: string }) => JSX.E
 // ── Main Dashboard ──
 
 export default function DashboardPage() {
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState<SidebarTab>('summary');
   const avatarInputRef = useRef<HTMLInputElement>(null);
@@ -613,14 +614,17 @@ export default function DashboardPage() {
               />
             )}
             {activeTab === 'profile' && (
-              <ProfilePanel
-                profile={profile}
-                isMusician={!!isMusician}
-                isVenue={!!isVenue}
-                isLoading={profileLoading}
-                onUpdate={(data) => updateProfileMutation.mutate(data)}
-                isUpdating={updateProfileMutation.isPending}
-              />
+              <div className="space-y-6">
+                <ProfilePanel
+                  profile={profile}
+                  isMusician={!!isMusician}
+                  isVenue={!!isVenue}
+                  isLoading={profileLoading}
+                  onUpdate={(data) => updateProfileMutation.mutate(data)}
+                  isUpdating={updateProfileMutation.isPending}
+                />
+                <DeleteAccountPanel onDeleted={logout} />
+              </div>
             )}
             {activeTab === 'media' && (
               <MediaPanel
@@ -928,6 +932,8 @@ function NotificationsPanel({
           return { label: 'View Details', href: `/applications/${n.relatedEntityId}/review` };
         case 'DEAL_CONFIRMED':
           return { label: 'View Deal', href: `/applications/${n.relatedEntityId}/finalize` };
+        case 'DEAL_CHAT_MESSAGE':
+          return { label: 'Open Chat', href: `/applications/${n.relatedEntityId}/finalize?chat=1` };
       }
     }
     if (n.type === 'ENTITY_DEACTIVATED') {

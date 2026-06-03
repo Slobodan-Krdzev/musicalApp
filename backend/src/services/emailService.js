@@ -142,4 +142,24 @@ export const emailService = {
       `Subscription ends on ${endDate}.`
     );
   },
+
+  async sendPasswordResetEmail(to, token) {
+    const url = `${FRONTEND_URL}/reset-password?token=${token}`;
+    return this.send(
+      to,
+      'Reset your GigConnection password',
+      `
+        <div style="font-family: sans-serif; max-width: 500px; margin: 0 auto;">
+          <h2 style="color: #7c3aed;">Reset your password</h2>
+          <p>We received a request to reset your GigConnection password.</p>
+          <a href="${url}" style="display:inline-block;padding:12px 24px;background:#7c3aed;color:#fff;border-radius:8px;text-decoration:none;font-weight:bold;margin:16px 0;">
+            Reset Password
+          </a>
+          <p style="color:#888;font-size:13px;">Or copy this link: ${url}</p>
+          <p style="color:#888;font-size:13px;">This link expires in 1 hour. If you did not request this, you can ignore this email.</p>
+        </div>
+      `,
+      `Reset your password: ${url}`
+    );
+  },
 };
