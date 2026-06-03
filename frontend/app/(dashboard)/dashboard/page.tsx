@@ -1307,7 +1307,7 @@ function EventsPanel({
                 {selectedApplication && !selectedFinalization.isFullyFinalized && (
                   <Button
                     size="sm"
-                    variant={selectedFinalization.waitingOnYou ? 'default' : 'secondary'}
+                    variant={selectedFinalization.waitingOnYou ? 'primary' : 'secondary'}
                     className="mt-1"
                     onClick={() => {
                       closeCalendarModal();
