@@ -7,6 +7,7 @@ import { useQuery } from '@tanstack/react-query';
 import { cn } from '@/lib/cn';
 import { useAuth } from '@/hooks/useAuth';
 import { apiRequest } from '@/lib/api';
+import { canAccessDashboard } from '@/lib/auth';
 import { BRAND, BrandMark } from '@/components/Layout/BrandMark';
 import { MobileMenuShell, mobileNavLinkClass } from '@/components/Layout/MobileMenuShell';
 
@@ -23,10 +24,12 @@ export function Header() {
     (user.role === 'MUSICIAN' || user.role === 'VENUE') &&
     !user.hasCompletedProfile;
 
+  const showDashboard = canAccessDashboard(user);
+
   const { data: notifsData } = useQuery({
     queryKey: ['notifications-count'],
     queryFn: () => apiRequest<{ unreadCount: number }>('/api/notifications?limit=1'),
-    enabled: !!user && !isInProfileWizard,
+    enabled: showDashboard && !isInProfileWizard,
     refetchInterval: 15000,
   });
 
@@ -54,7 +57,7 @@ export function Header() {
     { href: '/parties', label: 'Parties', show: true },
     { href: '/events', label: 'Events', show: user?.role === 'MUSICIAN' },
     { href: '/offerings', label: 'Offerings', show: user?.role === 'VENUE' },
-    { href: '/dashboard', label: 'Dashboard', show: !!user && !isInProfileWizard },
+    { href: '/dashboard', label: 'Dashboard', show: showDashboard && !isInProfileWizard },
     { href: '/admin', label: 'Admin', show: user?.role === 'SUPERADMIN' },
   ].filter((i) => i.show);
 
@@ -101,7 +104,7 @@ export function Header() {
               </Link>
             ))}
 
-            {!isLoading && user && !isInProfileWizard && (
+            {!isLoading && showDashboard && !isInProfileWizard && (
               <Link href="/dashboard" className="relative -mx-1 px-1" aria-label="Notifications">
                 <svg
                   className="h-5 w-5 text-zinc-400 transition-colors hover:text-zinc-100"
@@ -153,7 +156,7 @@ export function Header() {
           </nav>
 
           <div className="flex shrink-0 items-center gap-2 md:hidden">
-            {!isLoading && user && !isInProfileWizard && (
+            {!isLoading && showDashboard && !isInProfileWizard && (
               <Link
                 href="/dashboard"
                 className="relative inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-zinc-800 bg-zinc-950/80 text-zinc-200 transition-colors hover:bg-zinc-900"

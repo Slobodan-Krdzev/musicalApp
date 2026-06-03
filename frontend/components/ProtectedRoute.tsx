@@ -57,5 +57,16 @@ export function ProtectedRoute({ children, requireRole }: ProtectedRouteProps) {
   if (!user) return null;
   if (requireRole && user.role !== requireRole) return null;
 
+  const isMusicianOrVenue = user.role === 'MUSICIAN' || user.role === 'VENUE';
+  const blockedByProfile = isMusicianOrVenue && !user.hasCompletedProfile && pathname !== '/profile';
+  const blockedByEmail =
+    isMusicianOrVenue &&
+    user.hasCompletedProfile &&
+    !user.isEmailVerified &&
+    pathname !== '/profile' &&
+    pathname !== '/verify-email';
+
+  if (blockedByProfile || blockedByEmail) return null;
+
   return <>{children}</>;
 }

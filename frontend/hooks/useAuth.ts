@@ -3,7 +3,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
 import { apiRequest } from '@/lib/api';
-import { setTokens, clearTokens, type User } from '@/lib/auth';
+import { setTokens, clearTokens, getPostAuthPath, type User } from '@/lib/auth';
 
 type AuthResponse = {
   success: boolean;
@@ -75,7 +75,7 @@ export function useLogin() {
     onSuccess: (data) => {
       setTokens(data.accessToken, data.refreshToken);
       queryClient.setQueryData(['auth'], data.user);
-      router.push('/dashboard');
+      router.push(getPostAuthPath(data.user));
     },
   });
 }
@@ -95,7 +95,7 @@ export function useRegister() {
     onSuccess: (data) => {
       setTokens(data.accessToken, data.refreshToken);
       queryClient.setQueryData(['auth'], data.user);
-      router.push('/dashboard');
+      router.push(getPostAuthPath(data.user));
     },
   });
 }

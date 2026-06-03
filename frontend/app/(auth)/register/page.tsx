@@ -1,7 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import { Suspense, useEffect, useState } from 'react';
 import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Card, CardHeader, CardContent } from '@/components/ui/Card';
@@ -9,11 +10,22 @@ import { useRegister } from '@/hooks/useAuth';
 
 type Role = 'MUSICIAN' | 'VENUE';
 
-export default function RegisterPage() {
+function parseRoleParam(value: string | null): Role | null {
+  if (value === 'VENUE' || value === 'MUSICIAN') return value;
+  return null;
+}
+
+function RegisterForm() {
+  const searchParams = useSearchParams();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [role, setRole] = useState<Role>('MUSICIAN');
   const register = useRegister();
+
+  useEffect(() => {
+    const fromQuery = parseRoleParam(searchParams.get('role'));
+    if (fromQuery) setRole(fromQuery);
+  }, [searchParams]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -85,5 +97,21 @@ export default function RegisterPage() {
         </p>
       </CardContent>
     </Card>
+  );
+}
+
+export default function RegisterPage() {
+  return (
+    <Suspense
+      fallback={
+        <Card className="w-full max-w-md">
+          <CardContent className="flex justify-center p-8">
+            <div className="h-8 w-8 animate-spin rounded-full border-2 border-violet-500 border-t-transparent" />
+          </CardContent>
+        </Card>
+      }
+    >
+      <RegisterForm />
+    </Suspense>
   );
 }

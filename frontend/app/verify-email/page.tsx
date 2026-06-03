@@ -1,6 +1,7 @@
 'use client';
 
 import { Suspense, useEffect, useState } from 'react';
+import Link from 'next/link';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/hooks/useAuth';
@@ -8,12 +9,31 @@ import { apiRequest } from '@/lib/api';
 import { Card, CardContent } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 
+function VerifyEmailLinks({ className = '' }: { className?: string }) {
+  return (
+    <div className={`flex flex-col items-center gap-2 text-sm ${className}`}>
+      <Link href="/" className="text-violet-400 hover:underline">
+        Back to homepage
+      </Link>
+      <div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-1 text-zinc-500">
+        <Link href="/login" className="hover:text-zinc-300">
+          Log in
+        </Link>
+        <span aria-hidden>·</span>
+        <Link href="/register" className="hover:text-zinc-300">
+          Sign up
+        </Link>
+      </div>
+    </div>
+  );
+}
+
 function VerifyEmailInner() {
   const searchParams = useSearchParams();
   const token = searchParams.get('token');
   const router = useRouter();
   const queryClient = useQueryClient();
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
 
   const [status, setStatus] = useState<'idle' | 'verifying' | 'success' | 'error'>('idle');
   const [message, setMessage] = useState('');
@@ -60,6 +80,7 @@ function VerifyEmailInner() {
                 <h2 className="text-xl font-bold text-zinc-100 mb-2">Email Verified!</h2>
                 <p className="text-zinc-400 text-sm mb-6">{message}</p>
                 <Button onClick={() => router.push('/dashboard')}>Go to Dashboard</Button>
+                <VerifyEmailLinks className="mt-5" />
               </>
             )}
             {status === 'error' && (
@@ -71,7 +92,12 @@ function VerifyEmailInner() {
                 </div>
                 <h2 className="text-xl font-bold text-zinc-100 mb-2">Verification Failed</h2>
                 <p className="text-zinc-400 text-sm mb-6">{message}</p>
-                <Button variant="secondary" onClick={() => router.push('/verify-email')}>Back</Button>
+                <div className="flex flex-col gap-2">
+                  <Button variant="secondary" onClick={() => router.push('/verify-email')}>
+                    Try again
+                  </Button>
+                </div>
+                <VerifyEmailLinks className="mt-5" />
               </>
             )}
           </CardContent>
@@ -91,22 +117,32 @@ function VerifyEmailInner() {
           </div>
           <h2 className="text-xl font-bold text-zinc-100 mb-2">Check your email</h2>
           <p className="text-zinc-400 text-sm mb-2">
-            We&apos;ve sent a verification link to <strong className="text-zinc-200">{user?.email}</strong>.
+            We&apos;ve sent a verification link to{' '}
+            <strong className="text-zinc-200">{user?.email || 'your email address'}</strong>.
           </p>
           <p className="text-zinc-500 text-xs mb-6">
-            Click the link in the email to verify your account and start using GigConnection.
+            Click the link in the email to verify your account. Dashboard access is available after verification.
           </p>
           {message && <p className="text-emerald-400 text-sm mb-4">{message}</p>}
-          <Button
-            variant="secondary"
-            loading={resendMutation.isPending}
-            onClick={() => resendMutation.mutate()}
-          >
-            Resend verification email
-          </Button>
+          <div className="flex flex-col gap-2">
+            <Button
+              variant="secondary"
+              loading={resendMutation.isPending}
+              onClick={() => resendMutation.mutate()}
+              disabled={!user}
+            >
+              Resend verification email
+            </Button>
+            {user && (
+              <Button variant="ghost" onClick={logout}>
+                Log out
+              </Button>
+            )}
+          </div>
           {resendMutation.error && (
             <p className="text-red-400 text-sm mt-2">{(resendMutation.error as Error).message}</p>
           )}
+          <VerifyEmailLinks className="mt-6" />
         </CardContent>
       </Card>
     </div>

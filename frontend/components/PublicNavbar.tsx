@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { cn } from '@/lib/cn';
 import { useAuth } from '@/hooks/useAuth';
+import { canAccessDashboard } from '@/lib/auth';
 import { BRAND, BrandMark } from '@/components/Layout/BrandMark';
 import { MobileMenuShell, mobileNavLinkClass } from '@/components/Layout/MobileMenuShell';
 
@@ -24,6 +25,9 @@ export function PublicNavbar({ brandText = BRAND.name }: PublicNavbarProps) {
 
   useEffect(() => setMounted(true), []);
 
+  const showDashboard = canAccessDashboard(user);
+  const showAuthLinks = mounted && !isLoading && (!user || !showDashboard);
+
   useEffect(() => {
     function onKeyDown(e: KeyboardEvent) {
       if (e.key === 'Escape') setOpen(false);
@@ -37,8 +41,8 @@ export function PublicNavbar({ brandText = BRAND.name }: PublicNavbarProps) {
     };
   }, [open]);
 
-  const primaryHref = user ? '/dashboard' : '/register';
-  const primaryText = user ? 'Dashboard' : 'Get Started';
+  const primaryHref = showDashboard ? '/dashboard' : '/register';
+  const primaryText = showDashboard ? 'Dashboard' : 'Get Started';
 
   return (
     <>
@@ -66,20 +70,34 @@ export function PublicNavbar({ brandText = BRAND.name }: PublicNavbarProps) {
             <Link href="/about" className="text-zinc-400 hover:text-zinc-100">
               About Us
             </Link>
-            {mounted && !isLoading && !user && (
+            {showAuthLinks && (
               <Link href="/login" className="text-zinc-400 hover:text-zinc-100">
                 Log in
               </Link>
             )}
-            <Link href={primaryHref} className={primaryNavLinkClassName}>
-              {primaryText}
-            </Link>
+            {(!user || showDashboard) && (
+              <Link href={primaryHref} className={primaryNavLinkClassName}>
+                {primaryText}
+              </Link>
+            )}
+            {showAuthLinks && user && !showDashboard && (
+              <Link href="/register" className={primaryNavLinkClassName}>
+                Sign up
+              </Link>
+            )}
           </nav>
 
           <div className="flex items-center gap-2 lg:hidden">
-            <Link href={primaryHref} className={primaryNavLinkClassName}>
-              {primaryText}
-            </Link>
+            {(!user || showDashboard) && (
+              <Link href={primaryHref} className={primaryNavLinkClassName}>
+                {primaryText}
+              </Link>
+            )}
+            {showAuthLinks && user && !showDashboard && (
+              <Link href="/register" className={primaryNavLinkClassName}>
+                Sign up
+              </Link>
+            )}
 
             <button
               type="button"
@@ -141,7 +159,7 @@ export function PublicNavbar({ brandText = BRAND.name }: PublicNavbarProps) {
               <span className="block text-xs font-normal text-zinc-500">Our mission & story</span>
             </span>
           </Link>
-          {user && (
+          {showDashboard && user && (
             <Link
               href="/dashboard"
               onClick={() => setOpen(false)}
@@ -160,7 +178,7 @@ export function PublicNavbar({ brandText = BRAND.name }: PublicNavbarProps) {
           )}
         </nav>
 
-        {!user && mounted && !isLoading && (
+        {showAuthLinks && (
           <div className="mt-5 flex flex-col gap-2.5 border-t border-zinc-800/70 pt-5">
             <Link
               href="/login"
@@ -174,7 +192,7 @@ export function PublicNavbar({ brandText = BRAND.name }: PublicNavbarProps) {
               onClick={() => setOpen(false)}
               className="w-full rounded-xl bg-gradient-to-r from-indigo-500 to-fuchsia-500 px-4 py-3.5 text-center text-base font-semibold text-white transition-colors hover:from-indigo-400 hover:to-fuchsia-400"
             >
-              Get started free
+              {user && !showDashboard ? 'Sign up' : 'Get started free'}
             </Link>
           </div>
         )}
