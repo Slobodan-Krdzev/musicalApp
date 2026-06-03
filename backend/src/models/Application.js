@@ -7,6 +7,15 @@ const applicationSchema = new mongoose.Schema(
     applicantId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true, index: true },
     ownerId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true, index: true },
     quote: { type: Number, min: 0 },
+    lastQuoteBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+    quoteHistory: [
+      {
+        amount: { type: Number, min: 0, required: true },
+        userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+        message: { type: String, maxLength: 500 },
+        createdAt: { type: Date, default: Date.now },
+      },
+    ],
     message: { type: String },
     status: {
       type: String,
@@ -15,6 +24,8 @@ const applicationSchema = new mongoose.Schema(
       index: true,
     },
     expiresAt: { type: Date, index: true },
+    applicantFinalizedAt: { type: Date },
+    ownerFinalizedAt: { type: Date },
   },
   { timestamps: true }
 );

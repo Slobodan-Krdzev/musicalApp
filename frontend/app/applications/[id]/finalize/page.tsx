@@ -5,6 +5,7 @@ import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import Image from 'next/image';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { apiRequest } from '@/lib/api';
+import { getFinalizationStatus } from '@/lib/application';
 import { useAuth } from '@/hooks/useAuth';
 import { Header } from '@/components/Layout/Header';
 import { Button } from '@/components/ui/Button';
@@ -35,6 +36,9 @@ export default function FinalizeApplicationPage() {
   const deal = data?.deal;
   const isEvent = app?.entityType === 'EVENT';
   const isFinalized = app?.status === 'FINALIZED';
+  const finalization = app ? getFinalizationStatus(app, user?._id) : null;
+  const currentUserFinalized = !!finalization?.currentUserFinalized;
+  const waitingOnPartner = !isFinalized && currentUserFinalized;
 
   const musicianProfile = isEvent ? applicantProfile : ownerProfile;
   const venueProfile = isEvent ? ownerProfile : applicantProfile;
@@ -58,6 +62,7 @@ export default function FinalizeApplicationPage() {
     try {
       await apiRequest(`/api/applications/${id}/finalize`, { method: 'PATCH' });
       queryClient.invalidateQueries({ queryKey: ['application', id] });
+      queryClient.invalidateQueries({ queryKey: ['my-applications'] });
       queryClient.invalidateQueries({ queryKey: ['notifications'] });
       await refetch();
     } finally {
@@ -81,37 +86,78 @@ export default function FinalizeApplicationPage() {
           </div>
         ) : (
           <div className="space-y-6">
-            <button type="button" onClick={() => router.back()} className="text-zinc-400 hover:text-zinc-200 text-sm flex items-center gap-1">
-              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" /></svg>
-              Back
-            </button>
+            <div className="sticky top-16 z-30 -mx-3 border-b border-zinc-800/60 bg-zinc-950/95 px-3 py-4 backdrop-blur supports-[backdrop-filter]:bg-zinc-950/85 sm:-mx-4 sm:px-4">
+              <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                <div className="min-w-0 flex-1">
+                  <button type="button" onClick={() => router.back()} className="text-zinc-400 hover:text-zinc-200 text-sm flex items-center gap-1">
+                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" /></svg>
+                    Back
+                  </button>
+                  <div className="mt-2 flex flex-wrap items-center gap-3">
+                    <h1 className="text-xl sm:text-2xl font-bold text-zinc-100">{isFinalized ? 'Deal Finalized' : 'Finalize Deal'}</h1>
+                    <Badge variant={isFinalized ? 'success' : 'warning'}>{isFinalized ? 'FINALIZED' : 'ACCEPTED'}</Badge>
+                    {isFinalized && user && (
+                      <Button variant="secondary" size="sm" onClick={() => setChatOpen(true)} className="gap-2 sm:ml-auto">
+                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                        </svg>
+                        Chat
+                      </Button>
+                    )}
+                  </div>
 
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <div className="flex flex-wrap items-center gap-3">
-                <h1 className="text-xl sm:text-2xl font-bold text-zinc-100">{isFinalized ? 'Deal Finalized' : 'Finalize Deal'}</h1>
-                <Badge variant={isFinalized ? 'success' : 'warning'}>{isFinalized ? 'FINALIZED' : 'ACCEPTED'}</Badge>
-              </div>
-              {isFinalized && user && (
-                <Button variant="secondary" size="sm" onClick={() => setChatOpen(true)} className="gap-2">
-                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-                  </svg>
-                  Chat
-                </Button>
-              )}
-            </div>
-
-            {/* Event/Offering info */}
-            <Card>
-              <CardHeader><h2 className="text-lg font-semibold text-zinc-100">{isEvent ? 'Event' : 'Offering'}: {entity?.title}</h2></CardHeader>
-              <CardContent className="space-y-3">
-                {entity?.description && <p className="text-zinc-400 text-sm whitespace-pre-wrap">{entity.description}</p>}
-                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                  {entity?.date && <InfoBox label="Date" value={new Date(entity.date).toLocaleDateString(undefined, { weekday: 'short', month: 'long', day: 'numeric', year: 'numeric' })} />}
-                  {deal?.agreedQuote != null && <InfoBox label="Agreed Quote" value={`€${deal.agreedQuote}`} />}
+                  <Card className="mt-4 max-w-sm border-zinc-800">
+                    <CardHeader className="pb-2 pt-3">
+                      <h2 className="text-sm font-semibold text-zinc-100">{isEvent ? 'Event' : 'Offering'}: {entity?.title}</h2>
+                    </CardHeader>
+                    <CardContent className="space-y-2 pt-0 pb-3">
+                      {entity?.description && (
+                        <p className="text-zinc-500 text-xs whitespace-pre-wrap line-clamp-2">{entity.description}</p>
+                      )}
+                      <div className="grid grid-cols-2 gap-2">
+                        {entity?.date && (
+                          <InfoBox
+                            label="Date"
+                            value={new Date(entity.date).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })}
+                          />
+                        )}
+                        {deal?.agreedQuote != null && <InfoBox label="Agreed Quote" value={`€${deal.agreedQuote}`} />}
+                      </div>
+                    </CardContent>
+                  </Card>
                 </div>
-              </CardContent>
-            </Card>
+
+                {!isFinalized && finalization && (
+                  <Card className="w-full shrink-0 border-emerald-500/30 lg:max-w-md">
+                    <CardContent className="space-y-4 p-4">
+                      <h2 className="text-base font-semibold text-zinc-100 text-center">Ready to finalize?</h2>
+                      <p className="text-zinc-400 text-sm text-center">
+                        Both parties must click finalize before the deal is complete. Once both have confirmed,
+                        contact details will be shared and the {isEvent ? 'event' : 'offering'} will be marked as agreed.
+                      </p>
+                      <div className="flex flex-wrap justify-center gap-2 text-xs">
+                        <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 ${finalization.musicianFinalized ? 'bg-emerald-500/15 text-emerald-400' : 'bg-zinc-800 text-zinc-500'}`}>
+                          {finalization.musicianFinalized ? '✓' : '○'} Musician finalized
+                        </span>
+                        <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 ${finalization.venueFinalized ? 'bg-emerald-500/15 text-emerald-400' : 'bg-zinc-800 text-zinc-500'}`}>
+                          {finalization.venueFinalized ? '✓' : '○'} Venue finalized
+                        </span>
+                      </div>
+                      {waitingOnPartner ? (
+                        <div className="text-center space-y-1 py-1">
+                          <p className="text-amber-400 text-sm font-medium">You have finalized your side.</p>
+                          <p className="text-zinc-500 text-xs">Waiting for {partnerName} to finalize before contact details are shared.</p>
+                        </div>
+                      ) : (
+                        <Button className="w-full" loading={finalizing} onClick={handleFinalize}>
+                          Finalize on my side
+                        </Button>
+                      )}
+                    </CardContent>
+                  </Card>
+                )}
+              </div>
+            </div>
 
             {/* Venue & musician — side by side from lg */}
             <div className="grid grid-cols-1 gap-6 lg:grid-cols-2 lg:items-stretch">
@@ -122,20 +168,6 @@ export default function FinalizeApplicationPage() {
                 <ProfileCard title="Musician" profile={musicianProfile} showContactData={isFinalized} type="musician" />
               )}
             </div>
-
-            {/* Finalize action */}
-            {!isFinalized && (
-              <Card className="border-emerald-500/30">
-                <CardContent className="p-5 text-center space-y-4">
-                  <h2 className="text-lg font-semibold text-zinc-100">Ready to finalize?</h2>
-                  <p className="text-zinc-400 text-sm">
-                    Once finalized, contact details will be shared between both parties and the {isEvent ? 'event' : 'offering'} will be marked as complete. 
-                    The listing will be removed from public browsing but saved in both your dashboards.
-                  </p>
-                  <Button className="w-full" loading={finalizing} onClick={handleFinalize}>Finish Event</Button>
-                </CardContent>
-              </Card>
-            )}
 
             {isFinalized && (
               <div className="text-center py-6 space-y-3">

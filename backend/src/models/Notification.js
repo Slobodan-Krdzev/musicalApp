@@ -7,6 +7,7 @@ const notificationSchema = new mongoose.Schema(
       type: String,
       enum: [
         'APPLICATION_SUBMITTED',
+        'APPLICATION_QUOTE_UPDATED',
         'INTEREST_EXPRESSED',
         'APPLICATION_ACCEPTED',
         'APPLICATION_REJECTED',

@@ -26,6 +26,55 @@ function expiresAt() {
   return new Date(Date.now() + REPLY_WINDOW_HOURS * 60 * 60 * 1000);
 }
 
+async function getApplicationPartyNames(application) {
+  let entityTitle = '';
+  let musicianId;
+  let venueId;
+
+  if (application.entityType === 'EVENT') {
+    const event = await Event.findById(application.entityId);
+    entityTitle = event?.title || 'Event';
+    musicianId = application.applicantId;
+    venueId = application.ownerId;
+  } else {
+    const offering = await Offering.findById(application.entityId);
+    entityTitle = offering?.title || 'Offering';
+    musicianId = application.ownerId;
+    venueId = application.applicantId;
+  }
+
+  const [musicianProfile, venueProfile, applicant, owner] = await Promise.all([
+    MusicianProfile.findOne({ userId: musicianId }).select('bandName').lean(),
+    VenueProfile.findOne({ userId: venueId }).select('venueName').lean(),
+    User.findById(application.applicantId).select('email').lean(),
+    User.findById(application.ownerId).select('email').lean(),
+  ]);
+
+  const musicianName = musicianProfile?.bandName || applicant?.email || 'Musician';
+  const venueName = venueProfile?.venueName || owner?.email || 'Venue';
+
+  return {
+    entityTitle,
+    musicianId,
+    venueId,
+    musicianName,
+    venueName,
+    applicantName: application.entityType === 'EVENT' ? musicianName : venueName,
+    ownerName: application.entityType === 'EVENT' ? venueName : musicianName,
+    applicantEmail: applicant?.email,
+    ownerEmail: owner?.email,
+  };
+}
+
+function quoteHistoryEntry(userId, amount, message) {
+  return {
+    amount,
+    userId,
+    message: message || undefined,
+    createdAt: new Date(),
+  };
+}
+
 /**
  * Check if a user already has a finalized deal on a specific date.
  */
@@ -87,6 +136,8 @@ export async function applyToEvent(req, res, next) {
       applicantId: req.user._id,
       ownerId: event.venueId,
       quote,
+      lastQuoteBy: quote != null ? req.user._id : undefined,
+      quoteHistory: quote != null ? [quoteHistoryEntry(req.user._id, quote)] : [],
       message,
       expiresAt: expiresAt(),
     });
@@ -160,6 +211,8 @@ export async function applyToOffering(req, res, next) {
       applicantId: req.user._id,
       ownerId: offering.musicianId,
       quote,
+      lastQuoteBy: quote != null ? req.user._id : undefined,
+      quoteHistory: quote != null ? [quoteHistoryEntry(req.user._id, quote)] : [],
       message,
       expiresAt: expiresAt(),
     });
@@ -257,6 +310,61 @@ export async function getApplication(req, res, next) {
 }
 
 // ────────────────────────────────────────
+// COUNTER QUOTE (either party while pending)
+// ────────────────────────────────────────
+
+export async function updateApplicationQuote(req, res, next) {
+  try {
+    const { quote, message } = req.validated;
+    const application = await Application.findById(req.params.id);
+    if (!application) throw new NotFoundError('Application not found');
+
+    const isApplicant = application.applicantId.toString() === req.user._id.toString();
+    const isOwner = application.ownerId.toString() === req.user._id.toString();
+    if (!isApplicant && !isOwner) throw new ForbiddenError('Not authorized');
+    if (application.status !== 'PENDING') {
+      throw new ForbiddenError('Quote can only be updated while application is pending');
+    }
+    if (application.quote != null && application.quote === quote) {
+      throw new ForbiddenError('New quote must differ from the current quote');
+    }
+
+    application.quote = quote;
+    application.lastQuoteBy = req.user._id;
+    application.quoteHistory.push(quoteHistoryEntry(req.user._id, quote, message));
+    application.expiresAt = expiresAt();
+    await application.save();
+
+    const parties = await getApplicationPartyNames(application);
+    const recipientId = isApplicant ? application.ownerId : application.applicantId;
+    const proposerName = isApplicant ? parties.applicantName : parties.ownerName;
+    const reviewUrl = `${FRONTEND_URL}/applications/${application._id}/review`;
+
+    await createNotification({
+      userId: recipientId,
+      type: 'APPLICATION_QUOTE_UPDATED',
+      message: `${proposerName} proposed €${quote} for "${parties.entityTitle}"`,
+      relatedEntityId: application._id,
+      relatedEntityModel: 'Application',
+      sendEmail: true,
+      emailAddress: isApplicant ? parties.ownerEmail : parties.applicantEmail,
+      emailSubject: `New quote proposal: ${parties.entityTitle}`,
+      emailBody: emailWrap('New Quote Proposal', `
+        <p><strong>${proposerName}</strong> proposed a new quote for "<strong>${parties.entityTitle}</strong>".</p>
+        <p><strong>New quote:</strong> €${quote}</p>
+        ${message ? `<p><strong>Message:</strong> ${message}</p>` : ''}
+        <p>You can respond with a counter-offer or accept the application.</p>
+        ${btn(reviewUrl, 'Review Application')}
+      `),
+    });
+
+    res.json({ success: true, application });
+  } catch (err) {
+    next(err);
+  }
+}
+
+// ────────────────────────────────────────
 // ACCEPT / REJECT (owner of event/offering)
 // ────────────────────────────────────────
 
@@ -267,10 +375,24 @@ export async function updateApplicationStatus(req, res, next) {
 
     const application = await Application.findById(id);
     if (!application) throw new NotFoundError('Application not found');
-    if (application.ownerId.toString() !== req.user._id.toString()) {
-      throw new ForbiddenError('Not authorized');
-    }
+
+    const isApplicant = application.applicantId.toString() === req.user._id.toString();
+    const isOwner = application.ownerId.toString() === req.user._id.toString();
+    if (!isApplicant && !isOwner) throw new ForbiddenError('Not authorized');
     if (application.status !== 'PENDING') throw new ForbiddenError('Application already processed');
+
+    if (status === 'REJECTED' && !isOwner) {
+      throw new ForbiddenError('Only the listing owner can decline an application');
+    }
+
+    if (status === 'ACCEPTED' && isApplicant) {
+      if (application.quote == null) {
+        throw new ForbiddenError('Only the listing owner can accept applications without a quote');
+      }
+      if (application.lastQuoteBy?.toString() === req.user._id.toString()) {
+        throw new ForbiddenError('Wait for the other party to respond to your quote');
+      }
+    }
 
     application.status = status;
     application.expiresAt = undefined;
@@ -303,6 +425,7 @@ export async function updateApplicationStatus(req, res, next) {
     const venueName = venueProfile?.venueName || owner?.email || 'Venue';
     const applicantName = application.entityType === 'EVENT' ? musicianName : venueName;
     const ownerName = application.entityType === 'EVENT' ? venueName : musicianName;
+    const accepterName = isApplicant ? applicantName : ownerName;
 
     if (status === 'ACCEPTED') {
       // Check date conflict before accepting
@@ -326,37 +449,71 @@ export async function updateApplicationStatus(req, res, next) {
 
       const finalizeUrl = `${FRONTEND_URL}/applications/${application._id}/finalize`;
 
-      await createNotification({
-        userId: application.applicantId,
-        type: 'APPLICATION_ACCEPTED',
-        message: `Your application for "${entityTitle}" was accepted by ${ownerName}!`,
-        relatedEntityId: application._id,
-        relatedEntityModel: 'Application',
-        sendEmail: true,
-        emailAddress: applicant?.email,
-        emailSubject: `Application accepted: ${entityTitle}`,
-        emailBody: emailWrap('Application Accepted!', `
-          <p>Great news! <strong>${ownerName}</strong> has accepted your application for "<strong>${entityTitle}</strong>".</p>
-          ${application.quote ? `<p><strong>Agreed quote:</strong> €${application.quote}</p>` : ''}
-          ${btn(finalizeUrl, 'View Deal Details')}
-        `),
-      });
+      if (isApplicant) {
+        await createNotification({
+          userId: application.ownerId,
+          type: 'APPLICATION_ACCEPTED',
+          message: `${accepterName} accepted your quote of €${application.quote} for "${entityTitle}"`,
+          relatedEntityId: application._id,
+          relatedEntityModel: 'Application',
+          sendEmail: true,
+          emailAddress: owner?.email,
+          emailSubject: `Quote accepted: ${entityTitle}`,
+          emailBody: emailWrap('Quote Accepted!', `
+            <p><strong>${accepterName}</strong> accepted your quote for "<strong>${entityTitle}</strong>".</p>
+            <p><strong>Agreed quote:</strong> €${application.quote}</p>
+            ${btn(finalizeUrl, 'Proceed to Finalize')}
+          `),
+        });
 
-      await createNotification({
-        userId: application.ownerId,
-        type: 'APPLICATION_ACCEPTED',
-        message: `You accepted ${applicantName}'s application for "${entityTitle}"`,
-        relatedEntityId: application._id,
-        relatedEntityModel: 'Application',
-        sendEmail: true,
-        emailAddress: owner?.email,
-        emailSubject: `Deal confirmed: ${entityTitle}`,
-        emailBody: emailWrap('Deal Confirmed!', `
-          <p>You accepted <strong>${applicantName}</strong>'s application for "<strong>${entityTitle}</strong>".</p>
-          ${application.quote ? `<p><strong>Agreed quote:</strong> €${application.quote}</p>` : ''}
-          ${btn(finalizeUrl, 'View Deal Details')}
-        `),
-      });
+        await createNotification({
+          userId: application.applicantId,
+          type: 'APPLICATION_ACCEPTED',
+          message: `You accepted the quote for "${entityTitle}". Proceed to finalize the deal.`,
+          relatedEntityId: application._id,
+          relatedEntityModel: 'Application',
+          sendEmail: true,
+          emailAddress: applicant?.email,
+          emailSubject: `Deal confirmed: ${entityTitle}`,
+          emailBody: emailWrap('Deal Confirmed!', `
+            <p>You accepted the quote for "<strong>${entityTitle}</strong>".</p>
+            <p><strong>Agreed quote:</strong> €${application.quote}</p>
+            ${btn(finalizeUrl, 'Proceed to Finalize')}
+          `),
+        });
+      } else {
+        await createNotification({
+          userId: application.applicantId,
+          type: 'APPLICATION_ACCEPTED',
+          message: `Your application for "${entityTitle}" was accepted by ${ownerName}!`,
+          relatedEntityId: application._id,
+          relatedEntityModel: 'Application',
+          sendEmail: true,
+          emailAddress: applicant?.email,
+          emailSubject: `Application accepted: ${entityTitle}`,
+          emailBody: emailWrap('Application Accepted!', `
+            <p>Great news! <strong>${ownerName}</strong> has accepted your application for "<strong>${entityTitle}</strong>".</p>
+            ${application.quote ? `<p><strong>Agreed quote:</strong> €${application.quote}</p>` : ''}
+            ${btn(finalizeUrl, 'View Deal Details')}
+          `),
+        });
+
+        await createNotification({
+          userId: application.ownerId,
+          type: 'APPLICATION_ACCEPTED',
+          message: `You accepted ${applicantName}'s application for "${entityTitle}"`,
+          relatedEntityId: application._id,
+          relatedEntityModel: 'Application',
+          sendEmail: true,
+          emailAddress: owner?.email,
+          emailSubject: `Deal confirmed: ${entityTitle}`,
+          emailBody: emailWrap('Deal Confirmed!', `
+            <p>You accepted <strong>${applicantName}</strong>'s application for "<strong>${entityTitle}</strong>".</p>
+            ${application.quote ? `<p><strong>Agreed quote:</strong> €${application.quote}</p>` : ''}
+            ${btn(finalizeUrl, 'View Deal Details')}
+          `),
+        });
+      }
     } else {
       await createNotification({
         userId: application.applicantId,
@@ -391,8 +548,124 @@ export async function updateApplicationStatus(req, res, next) {
 }
 
 // ────────────────────────────────────────
-// FINALIZE (mark deal as completed, event as AGREED)
+// FINALIZE (both parties must confirm)
 // ────────────────────────────────────────
+
+async function completeApplicationFinalization(application) {
+  application.status = 'FINALIZED';
+  await application.save();
+
+  const deal = await Deal.findOne({ applicationId: application._id });
+  if (deal) {
+    deal.status = 'COMPLETED';
+    await deal.save();
+  }
+
+  if (application.entityType === 'EVENT') {
+    await Event.findByIdAndUpdate(application.entityId, { status: 'AGREED' });
+  } else {
+    await Offering.findByIdAndUpdate(application.entityId, { status: 'AGREED' });
+  }
+
+  const applicant = await User.findById(application.applicantId).select('email');
+  const owner = await User.findById(application.ownerId).select('email');
+
+  let entityTitle = '';
+  if (application.entityType === 'EVENT') {
+    const event = await Event.findById(application.entityId);
+    entityTitle = event?.title || 'Event';
+  } else {
+    const offering = await Offering.findById(application.entityId);
+    entityTitle = offering?.title || 'Offering';
+  }
+
+  const musicianProfile = await MusicianProfile.findOne({ userId: deal?.musicianId || application.applicantId });
+  const venueProfile = await VenueProfile.findOne({ userId: deal?.venueId || application.ownerId });
+  const musicianName = musicianProfile?.bandName || 'Musician';
+  const venueName = venueProfile?.venueName || 'Venue';
+
+  for (const u of [
+    { id: application.applicantId, email: applicant?.email },
+    { id: application.ownerId, email: owner?.email },
+  ]) {
+    await createNotification({
+      userId: u.id,
+      type: 'DEAL_CONFIRMED',
+      message: `"${entityTitle}" has been finalized. Connection complete!`,
+      relatedEntityId: application._id,
+      relatedEntityModel: 'Application',
+      sendEmail: true,
+      emailAddress: u.email,
+      emailSubject: `Deal finalized: ${entityTitle}`,
+      emailBody: emailWrap('Deal Finalized!', `
+        <p>"<strong>${entityTitle}</strong>" between <strong>${musicianName}</strong> and <strong>${venueName}</strong> is now complete.</p>
+        <p>You can now see full contact details in your dashboard.</p>
+        ${btn(FRONTEND_URL + '/applications/' + application._id + '/finalize', 'View Deal')}
+      `),
+    });
+  }
+
+  if (deal) {
+    notifyFinalizedDeal(deal._id).catch((err) => {
+      console.error('[Application] newsletter party notify failed:', err.message);
+    });
+  }
+
+  return application;
+}
+
+async function notifyPartnerToFinalize(application, finalizerId) {
+  const recipientId =
+    finalizerId.toString() === application.applicantId.toString()
+      ? application.ownerId
+      : application.applicantId;
+
+  let entityTitle = '';
+  if (application.entityType === 'EVENT') {
+    const event = await Event.findById(application.entityId);
+    entityTitle = event?.title || 'Event';
+  } else {
+    const offering = await Offering.findById(application.entityId);
+    entityTitle = offering?.title || 'Offering';
+  }
+
+  const isApplicantFinalizer = finalizerId.toString() === application.applicantId.toString();
+  let finalizerName = 'Your partner';
+  if (application.entityType === 'EVENT') {
+    if (isApplicantFinalizer) {
+      const p = await MusicianProfile.findOne({ userId: finalizerId }).select('bandName').lean();
+      finalizerName = p?.bandName || 'Musician';
+    } else {
+      const p = await VenueProfile.findOne({ userId: finalizerId }).select('venueName').lean();
+      finalizerName = p?.venueName || 'Venue';
+    }
+  } else if (isApplicantFinalizer) {
+    const p = await VenueProfile.findOne({ userId: finalizerId }).select('venueName').lean();
+    finalizerName = p?.venueName || 'Venue';
+  } else {
+    const p = await MusicianProfile.findOne({ userId: finalizerId }).select('bandName').lean();
+    finalizerName = p?.bandName || 'Musician';
+  }
+
+  const recipient = await User.findById(recipientId).select('email');
+  const finalizeUrl = `${FRONTEND_URL}/applications/${application._id}/finalize`;
+
+  await createNotification({
+    userId: recipientId,
+    type: 'APPLICATION_ACCEPTED',
+    message: `${finalizerName} finalized "${entityTitle}". Finalize on your side to complete the deal.`,
+    relatedEntityId: application._id,
+    relatedEntityModel: 'Application',
+    sendEmail: true,
+    emailAddress: recipient?.email,
+    emailSubject: `Finalize your deal: ${entityTitle}`,
+    emailBody: emailWrap('One more step to finalize', `
+      <p><strong>${finalizerName}</strong> has finalized the deal for "<strong>${entityTitle}</strong>".</p>
+      <p>Please finalize on your side to share contact details and complete the connection.</p>
+      ${btn(finalizeUrl, 'Finalize Deal')}
+    `),
+  });
+}
 
 export async function finalizeApplication(req, res, next) {
   try {
@@ -402,68 +675,42 @@ export async function finalizeApplication(req, res, next) {
     const isApplicant = application.applicantId.toString() === req.user._id.toString();
     const isOwner = application.ownerId.toString() === req.user._id.toString();
     if (!isApplicant && !isOwner) throw new ForbiddenError('Not authorized');
+    if (application.status === 'FINALIZED') {
+      return res.json({ success: true, application, fullyFinalized: true });
+    }
     if (application.status !== 'ACCEPTED') throw new ForbiddenError('Application must be accepted first');
 
-    application.status = 'FINALIZED';
+    const now = new Date();
+    if (isApplicant) {
+      if (application.applicantFinalizedAt) {
+        return res.json({
+          success: true,
+          application,
+          fullyFinalized: !!(application.applicantFinalizedAt && application.ownerFinalizedAt),
+        });
+      }
+      application.applicantFinalizedAt = now;
+    } else {
+      if (application.ownerFinalizedAt) {
+        return res.json({
+          success: true,
+          application,
+          fullyFinalized: !!(application.applicantFinalizedAt && application.ownerFinalizedAt),
+        });
+      }
+      application.ownerFinalizedAt = now;
+    }
+
     await application.save();
 
-    const deal = await Deal.findOne({ applicationId: application._id });
-    if (deal) {
-      deal.status = 'COMPLETED';
-      await deal.save();
+    const bothFinalized = application.applicantFinalizedAt && application.ownerFinalizedAt;
+    if (bothFinalized) {
+      await completeApplicationFinalization(application);
+      return res.json({ success: true, application, fullyFinalized: true });
     }
 
-    if (application.entityType === 'EVENT') {
-      await Event.findByIdAndUpdate(application.entityId, { status: 'AGREED' });
-    } else {
-      await Offering.findByIdAndUpdate(application.entityId, { status: 'AGREED' });
-    }
-
-    const applicant = await User.findById(application.applicantId).select('email');
-    const owner = await User.findById(application.ownerId).select('email');
-
-    let entityTitle = '';
-    if (application.entityType === 'EVENT') {
-      const event = await Event.findById(application.entityId);
-      entityTitle = event?.title || 'Event';
-    } else {
-      const offering = await Offering.findById(application.entityId);
-      entityTitle = offering?.title || 'Offering';
-    }
-
-    const musicianProfile = await MusicianProfile.findOne({ userId: deal?.musicianId || application.applicantId });
-    const venueProfile = await VenueProfile.findOne({ userId: deal?.venueId || application.ownerId });
-    const musicianName = musicianProfile?.bandName || 'Musician';
-    const venueName = venueProfile?.venueName || 'Venue';
-
-    for (const u of [
-      { id: application.applicantId, email: applicant?.email },
-      { id: application.ownerId, email: owner?.email },
-    ]) {
-      await createNotification({
-        userId: u.id,
-        type: 'DEAL_CONFIRMED',
-        message: `"${entityTitle}" has been finalized. Connection complete!`,
-        relatedEntityId: application._id,
-        relatedEntityModel: 'Application',
-        sendEmail: true,
-        emailAddress: u.email,
-        emailSubject: `Deal finalized: ${entityTitle}`,
-        emailBody: emailWrap('Deal Finalized!', `
-          <p>"<strong>${entityTitle}</strong>" between <strong>${musicianName}</strong> and <strong>${venueName}</strong> is now complete.</p>
-          <p>You can now see full contact details in your dashboard.</p>
-          ${btn(FRONTEND_URL + '/dashboard', 'Go to Dashboard')}
-        `),
-      });
-    }
-
-    if (deal) {
-      notifyFinalizedDeal(deal._id).catch((err) => {
-        console.error('[Application] newsletter party notify failed:', err.message);
-      });
-    }
-
-    res.json({ success: true, application });
+    await notifyPartnerToFinalize(application, req.user._id);
+    res.json({ success: true, application, fullyFinalized: false });
   } catch (err) {
     next(err);
   }

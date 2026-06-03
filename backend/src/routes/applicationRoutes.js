@@ -4,6 +4,7 @@ import {
   applyToOffering,
   getApplication,
   updateApplicationStatus,
+  updateApplicationQuote,
   finalizeApplication,
   getMyApplications,
   getApplicationsForEntity,
@@ -11,7 +12,7 @@ import {
 import { getDealChatMessages, postDealChatMessage, postDealChatRead } from '../controllers/dealChatController.js';
 import { authenticate, requireMusician, requireVenue } from '../middleware/auth.js';
 import { validate } from '../middleware/validate.js';
-import { applyToEventSchema, applyToOfferingSchema, updateApplicationStatusSchema } from '../validators/application.js';
+import { applyToEventSchema, applyToOfferingSchema, updateApplicationStatusSchema, updateApplicationQuoteSchema } from '../validators/application.js';
 
 const router = Router();
 
@@ -26,6 +27,7 @@ router.post('/event', authenticate, requireMusician, validate(applyToEventSchema
 router.post('/offering', authenticate, requireVenue, validate(applyToOfferingSchema), applyToOffering);
 
 router.patch('/:id/status', authenticate, validate(updateApplicationStatusSchema), updateApplicationStatus);
+router.patch('/:id/quote', authenticate, validate(updateApplicationQuoteSchema), updateApplicationQuote);
 router.patch('/:id/finalize', authenticate, finalizeApplication);
 
 export default router;

@@ -6,6 +6,8 @@ import { useRouter } from 'next/navigation';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/hooks/useAuth';
 import { apiRequest } from '@/lib/api';
+import { getFinalizationStatus } from '@/lib/application';
+import { FinalizationStatusText } from '@/components/deals/FinalizationStatusText';
 import { Card, CardHeader, CardContent } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
@@ -67,6 +69,9 @@ type CalendarItem = {
   date?: string;
   status: string;
   description?: string;
+  applicationId?: string;
+  isFinalizedDeal?: boolean;
+  entityType?: 'EVENT' | 'OFFERING';
 };
 
 type ApplicationItem = {
@@ -78,8 +83,10 @@ type ApplicationItem = {
   quote?: number;
   message?: string;
   status: string;
+  applicantFinalizedAt?: string | null;
+  ownerFinalizedAt?: string | null;
   createdAt: string;
-  entity?: { _id: string; title: string; date?: string; status: string };
+  entity?: { _id: string; title: string; date?: string; status: string; description?: string };
 };
 
 type Sub = {
@@ -925,6 +932,8 @@ function NotificationsPanel({
       switch (n.type) {
         case 'APPLICATION_SUBMITTED':
           return { label: 'Review Application', href: `/applications/${n.relatedEntityId}/review` };
+        case 'APPLICATION_QUOTE_UPDATED':
+          return { label: 'Respond to Quote', href: `/applications/${n.relatedEntityId}/review` };
         case 'APPLICATION_ACCEPTED':
           return { label: 'View Deal', href: `/applications/${n.relatedEntityId}/finalize` };
         case 'APPLICATION_REJECTED':
@@ -1061,8 +1070,10 @@ function EventsPanel({
   onCreateOffering: (prefilledDate?: string) => void;
 }) {
   const router = useRouter();
+  const { user } = useAuth();
   const [selectedItem, setSelectedItem] = useState<CalendarItem | null>(null);
   const [selectedFull, setSelectedFull] = useState<EventItem | OfferingItem | null>(null);
+  const [selectedDealApp, setSelectedDealApp] = useState<ApplicationItem | null>(null);
   const [calendarDate, setCalendarDate] = useState(() => new Date());
 
   const year = calendarDate.getFullYear();
@@ -1071,9 +1082,34 @@ function EventsPanel({
   const daysInMonth = new Date(year, month + 1, 0).getDate();
   const monthName = calendarDate.toLocaleString(undefined, { month: 'long', year: 'numeric' });
 
+  const offeringEntityIds = new Set(offerings.map((o) => o._id));
+
+  const finalizedDealItems: CalendarItem[] = isMusician
+    ? applications
+        .filter(
+          (a) =>
+            a.status === 'FINALIZED' &&
+            a.entity?.date &&
+            (a.entityType === 'EVENT' || !offeringEntityIds.has(a.entityId)),
+        )
+        .map((a) => ({
+          _id: `deal-${a._id}`,
+          title: a.entity!.title,
+          date: a.entity!.date,
+          status: 'FINALIZED',
+          description: a.entity?.description,
+          applicationId: a._id,
+          isFinalizedDeal: true,
+          entityType: a.entityType,
+        }))
+    : [];
+
   const allItems: CalendarItem[] = isVenue
     ? events.map((e) => ({ _id: e._id, title: e.title, date: e.date, status: e.status, description: e.description }))
-    : offerings.map((o) => ({ _id: o._id, title: o.title, date: o.date, status: o.status, description: o.description }));
+    : [
+        ...offerings.map((o) => ({ _id: o._id, title: o.title, date: o.date, status: o.status, description: o.description })),
+        ...finalizedDealItems,
+      ];
 
   const fullMap = new Map<string, EventItem | OfferingItem>();
   if (isVenue) events.forEach((e) => fullMap.set(e._id, e));
@@ -1100,27 +1136,44 @@ function EventsPanel({
   function getStatusColor(status: string) {
     switch (status) {
       case 'ACTIVE': case 'ACCEPTED': return 'bg-emerald-500';
+      case 'FINALIZED': case 'AGREED': return 'bg-blue-500';
       case 'EXPIRED': case 'PENDING': return 'bg-amber-500';
-      case 'CANCELLED': case 'REJECTED': case 'AGREED': return 'bg-blue-500';
+      case 'CANCELLED': case 'REJECTED': return 'bg-red-500';
       default: return 'bg-zinc-500';
     }
   }
 
   function getStatusBadge(status: string): 'success' | 'warning' | 'danger' | 'default' {
     switch (status) {
-      case 'ACTIVE': case 'ACCEPTED': return 'success';
+      case 'ACTIVE': case 'ACCEPTED': case 'FINALIZED': case 'AGREED': return 'success';
       case 'EXPIRED': case 'PENDING': return 'warning';
       case 'CANCELLED': case 'REJECTED': return 'danger';
       default: return 'default';
     }
   }
 
+  function openCalendarItem(item: CalendarItem) {
+    setSelectedItem(item);
+    if (item.applicationId) {
+      const app = applications.find((a) => a._id === item.applicationId) ?? null;
+      setSelectedDealApp(app);
+      setSelectedFull(null);
+    } else {
+      setSelectedDealApp(null);
+      setSelectedFull(fullMap.get(item._id) || null);
+    }
+  }
+
+  function closeCalendarModal() {
+    setSelectedItem(null);
+    setSelectedFull(null);
+    setSelectedDealApp(null);
+  }
+
   function handleCalendarDayClick(day: number) {
     const dayItems = itemsByDay.get(day) || [];
     if (dayItems.length > 0) {
-      const item = dayItems[0];
-      setSelectedItem(item);
-      setSelectedFull(fullMap.get(item._id) || null);
+      openCalendarItem(dayItems[0]);
     } else {
       const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}T12:00`;
       if (isVenue) onCreateEvent(dateStr);
@@ -1129,31 +1182,84 @@ function EventsPanel({
   }
 
   function handleItemClick(item: CalendarItem) {
-    setSelectedItem(item);
-    setSelectedFull(fullMap.get(item._id) || null);
+    openCalendarItem(item);
   }
 
   const entityLabel = isVenue ? 'Event' : 'Offering';
 
+  const selectedApplication = selectedDealApp
+    ?? (selectedFull
+      ? applications.find(
+          (app) =>
+            app.entityId === selectedFull._id &&
+            app.entityType === (isVenue ? 'EVENT' : 'OFFERING') &&
+            (app.status === 'ACCEPTED' || app.status === 'FINALIZED'),
+        ) ?? null
+      : null);
+
+  const modalEntity = selectedDealApp?.entity ?? selectedFull;
+  const showFinalizedDealDetails = selectedApplication?.status === 'FINALIZED';
+
+  const selectedFinalization = selectedApplication && !showFinalizedDealDetails
+    ? getFinalizationStatus(selectedApplication, user?._id)
+    : null;
+
   return (
     <>
       {/* Detail Modal */}
-      <Modal open={!!selectedItem} onClose={() => { setSelectedItem(null); setSelectedFull(null); }} title={selectedItem?.title} className="max-w-lg">
-        {selectedFull && (
+      <Modal open={!!selectedItem} onClose={closeCalendarModal} title={selectedItem?.title} className="max-w-lg">
+        {modalEntity && (
           <div className="space-y-3">
-            <div className="flex items-center gap-2">
-              <Badge variant={getStatusBadge(selectedFull.status)}>{selectedFull.status}</Badge>
-              {selectedFull.date && (
+            <div className="flex flex-wrap items-center gap-2">
+              <Badge variant={getStatusBadge(selectedItem?.status || modalEntity.status || 'default')}>
+                {selectedItem?.status || modalEntity.status}
+              </Badge>
+              {selectedDealApp?.entityType && (
+                <Badge variant="default">
+                  {selectedDealApp.entityType === 'EVENT' ? 'Venue event' : 'Offering gig'}
+                </Badge>
+              )}
+              {selectedApplication?.entityType && !selectedDealApp && showFinalizedDealDetails && (
+                <Badge variant="default">
+                  {selectedApplication.entityType === 'EVENT' ? 'Venue event' : 'Offering gig'}
+                </Badge>
+              )}
+              {modalEntity.date && (
                 <span className="text-zinc-400 text-sm">
-                  {new Date(selectedFull.date).toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                  {new Date(modalEntity.date).toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
                 </span>
               )}
             </div>
-            {selectedFull.description && <p className="text-zinc-300 text-sm whitespace-pre-wrap">{selectedFull.description}</p>}
-            {'activeTo' in selectedFull && selectedFull.activeTo && (
+            {modalEntity.description && <p className="text-zinc-300 text-sm whitespace-pre-wrap">{modalEntity.description}</p>}
+            {showFinalizedDealDetails && selectedApplication && (
+              <div className="rounded-lg border border-emerald-500/30 bg-emerald-500/5 p-3 space-y-2">
+                <span className="text-xs font-medium text-emerald-400 uppercase tracking-wide">Finalized deal</span>
+                {selectedApplication.quote != null && (
+                  <p className="text-sm text-zinc-200">
+                    Agreed quote: <span className="font-semibold text-emerald-300">€{selectedApplication.quote}</span>
+                  </p>
+                )}
+                <p className="text-xs text-zinc-500">
+                  {selectedApplication.entityType === 'EVENT'
+                    ? 'You performed at a venue event.'
+                    : 'A venue booked your offering.'}
+                </p>
+                <Button
+                  size="sm"
+                  className="mt-1"
+                  onClick={() => {
+                    closeCalendarModal();
+                    router.push(`/applications/${selectedApplication._id}/finalize`);
+                  }}
+                >
+                  View deal details
+                </Button>
+              </div>
+            )}
+            {selectedFull && 'activeTo' in selectedFull && selectedFull.activeTo && (
               <p className="text-zinc-500 text-xs">Active until: {new Date(selectedFull.activeTo).toLocaleDateString(undefined, { month: 'long', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</p>
             )}
-            {selectedFull.lookingFor && selectedFull.lookingFor.length > 0 && (
+            {selectedFull?.lookingFor && selectedFull.lookingFor.length > 0 && (
               <div>
                 <span className="text-xs text-zinc-500 font-medium">Looking for:</span>
                 <div className="flex flex-wrap gap-1 mt-1">
@@ -1161,7 +1267,7 @@ function EventsPanel({
                 </div>
               </div>
             )}
-            {'genres' in selectedFull && selectedFull.genres && selectedFull.genres.length > 0 && (
+            {selectedFull && 'genres' in selectedFull && selectedFull.genres && selectedFull.genres.length > 0 && (
               <div>
                 <span className="text-xs text-zinc-500 font-medium">Genres:</span>
                 <div className="flex flex-wrap gap-1 mt-1">
@@ -1169,13 +1275,64 @@ function EventsPanel({
                 </div>
               </div>
             )}
-            {'approximatePayment' in selectedFull && selectedFull.approximatePayment != null && (
+            {selectedFull && 'approximatePayment' in selectedFull && selectedFull.approximatePayment != null && (
               <p className="text-zinc-400 text-sm">Payment: ~€{selectedFull.approximatePayment}{selectedFull.paymentType ? ` (${selectedFull.paymentType})` : ''}</p>
             )}
-            {'approximatePrice' in selectedFull && selectedFull.approximatePrice != null && (
+            {selectedFull && 'approximatePrice' in selectedFull && selectedFull.approximatePrice != null && (
               <p className="text-zinc-400 text-sm">Price: ~€{selectedFull.approximatePrice}{selectedFull.paymentType ? ` (${selectedFull.paymentType})` : ''}</p>
             )}
-            {selectedFull.date && (
+            {selectedFinalization && (
+              <div className={`rounded-lg border p-3 space-y-2 ${
+                selectedFinalization.waitingOnYou
+                  ? 'border-amber-500/30 bg-amber-500/5'
+                  : selectedFinalization.isFullyFinalized
+                    ? 'border-emerald-500/30 bg-emerald-500/5'
+                    : 'border-zinc-800 bg-zinc-900/50'
+              }`}>
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-xs font-medium text-zinc-500 uppercase tracking-wide">Deal finalization</span>
+                  <Badge variant={selectedFinalization.isFullyFinalized ? 'success' : 'warning'}>
+                    {selectedFinalization.isFullyFinalized ? 'FINALIZED' : 'IN PROGRESS'}
+                  </Badge>
+                </div>
+                <FinalizationStatusText status={selectedFinalization} />
+                <div className="flex flex-wrap gap-2 text-xs">
+                  <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 ${selectedFinalization.musicianFinalized ? 'bg-emerald-500/15 text-emerald-400' : 'bg-zinc-800 text-zinc-500'}`}>
+                    {selectedFinalization.musicianFinalized ? '✓' : '○'} Musician
+                  </span>
+                  <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 ${selectedFinalization.venueFinalized ? 'bg-emerald-500/15 text-emerald-400' : 'bg-zinc-800 text-zinc-500'}`}>
+                    {selectedFinalization.venueFinalized ? '✓' : '○'} Venue
+                  </span>
+                </div>
+                {selectedApplication && !selectedFinalization.isFullyFinalized && (
+                  <Button
+                    size="sm"
+                    variant={selectedFinalization.waitingOnYou ? 'default' : 'secondary'}
+                    className="mt-1"
+                    onClick={() => {
+                      closeCalendarModal();
+                      router.push(`/applications/${selectedApplication._id}/finalize`);
+                    }}
+                  >
+                    {selectedFinalization.waitingOnYou ? 'Finalize deal' : 'View finalization'}
+                  </Button>
+                )}
+                {selectedApplication && selectedFinalization.isFullyFinalized && (
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    className="mt-1"
+                    onClick={() => {
+                      closeCalendarModal();
+                      router.push(`/applications/${selectedApplication._id}/finalize`);
+                    }}
+                  >
+                    View deal
+                  </Button>
+                )}
+              </div>
+            )}
+            {selectedFull?.date && !showFinalizedDealDetails && (
               <Button
                 variant="secondary"
                 size="sm"
@@ -1183,8 +1340,7 @@ function EventsPanel({
                 onClick={() => {
                   const d = new Date(selectedFull.date!);
                   const dateStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}T12:00`;
-                  setSelectedItem(null);
-                  setSelectedFull(null);
+                  closeCalendarModal();
                   if (isVenue) onCreateEvent(dateStr);
                   else onCreateOffering(dateStr);
                 }}
@@ -1198,7 +1354,7 @@ function EventsPanel({
 
       <Card>
         <CardHeader className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <h2 className="text-lg font-semibold text-zinc-100">{isVenue ? 'My Events' : 'My Offerings'}</h2>
+          <h2 className="text-lg font-semibold text-zinc-100">{isVenue ? 'My Events' : 'My Calendar'}</h2>
           <div className="flex flex-wrap items-center justify-between gap-2 sm:justify-end">
             {isVenue && (
               <Button size="sm" onClick={() => onCreateEvent()}>
@@ -1341,7 +1497,7 @@ function EventsPanel({
               <p className="text-zinc-500 text-sm">
                 {isVenue
                   ? 'No events yet. Click a date or the button above to create one.'
-                  : 'No offerings yet. Click a date or the button above to create one.'}
+                  : 'No gigs or offerings yet. Click a date or the button above to create an offering.'}
               </p>
             </div>
           )}
@@ -1358,15 +1514,25 @@ function EventsPanel({
             <div className="divide-y divide-zinc-800/50 max-h-[400px] overflow-y-auto">
               {applications.map((app) => {
                 const entityTitle = app.entity?.title || 'Unknown';
-                const isApplicant = true;
+                const finalization = getFinalizationStatus(app, user?._id);
                 const statusBadge: 'success' | 'warning' | 'danger' | 'default' =
-                  app.status === 'ACCEPTED' || app.status === 'FINALIZED' ? 'success' :
+                  app.status === 'FINALIZED' ? 'success' :
+                  app.status === 'ACCEPTED' ? (finalization?.currentUserFinalized ? 'default' : 'success') :
                   app.status === 'PENDING' ? 'warning' :
                   app.status === 'REJECTED' ? 'danger' : 'default';
 
-                const href = app.status === 'ACCEPTED'
+                const href = app.status === 'ACCEPTED' || app.status === 'FINALIZED'
                   ? `/applications/${app._id}/finalize`
                   : `/applications/${app._id}/review`;
+
+                const statusLabel =
+                  app.status === 'ACCEPTED' && finalization && !finalization.isFullyFinalized
+                    ? finalization.currentUserFinalized
+                      ? 'AWAITING PARTNER'
+                      : finalization.waitingOnYou
+                        ? 'YOUR TURN'
+                        : 'ACCEPTED'
+                    : app.status;
 
                 return (
                   <button
@@ -1386,9 +1552,12 @@ function EventsPanel({
                           {app.quote != null && ` · €${app.quote}`}
                           {' · '}
                           {new Date(app.createdAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
+                          {finalization && !finalization.isFullyFinalized && app.status === 'ACCEPTED' && (
+                            <> · {finalization.summary}</>
+                          )}
                         </p>
                       </div>
-                      <Badge variant={statusBadge} className="flex-shrink-0">{app.status}</Badge>
+                      <Badge variant={statusBadge} className="flex-shrink-0">{statusLabel}</Badge>
                     </div>
                   </button>
                 );

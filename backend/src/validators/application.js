@@ -17,3 +17,8 @@ export const applyToOfferingSchema = z.object({
 export const updateApplicationStatusSchema = z.object({
   status: z.enum(['ACCEPTED', 'REJECTED']),
 }).strict();
+
+export const updateApplicationQuoteSchema = z.object({
+  quote: z.number().min(0),
+  message: z.string().max(500).optional(),
+}).strict();
