@@ -42,11 +42,9 @@ Frontend uses Next.js rewrites to proxy `/api/*` to the backend; no `.env.local`
 cd backend && npm run seed
 ```
 
-Demo users (password: `password123`):
+Demo superadmin (password: `password123` unless `SEED_ADMIN_PASSWORD` is set in `.env`):
 
-- **Musician:** musician@demo.com  
-- **Venue:** venue@demo.com  
-- **SuperAdmin:** admin@demo.com  
+- **SuperAdmin:** connectiongig@gmail.com  
 
 ### 4. Run
 
