@@ -1,65 +1,94 @@
-import { User, Event, Application, Deal, Subscription, ROLES } from '../models/index.js';
+import { User, Subscription } from '../models/index.js';
 import { NotFoundError, ForbiddenError } from '../utils/errors.js';
+import {
+  getEnhancedStats,
+  adminSearch,
+  listCustomers,
+  listDealsAdmin,
+  getNewsletterStats,
+  listNewsletterSubscribers,
+  listEventsAdmin,
+  getEventAdminById,
+  listApplicationsAdmin,
+} from '../services/adminDashboardService.js';
+import {
+  listSupportTicketsAdmin,
+  getSupportTicketAdmin,
+  updateSupportTicketAdmin,
+} from '../services/supportService.js';
 
-/**
- * Dashboard stats (superadmin only).
- */
 export async function getStats(req, res, next) {
   try {
-    const [totalUsers, musicians, venues, subscriptions, events, applications, deals] = await Promise.all([
-      User.countDocuments({ isSuspended: false }),
-      User.countDocuments({ role: ROLES.MUSICIAN, isSuspended: false }),
-      User.countDocuments({ role: ROLES.VENUE, isSuspended: false }),
-      Subscription.countDocuments({ status: { $in: ['active', 'trialing'] } }),
-      Event.countDocuments(),
-      Application.countDocuments(),
-      Deal.countDocuments(),
-    ]);
-
-    res.json({
-      success: true,
-      stats: {
-        totalUsers,
-        musicians,
-        venues,
-        activeSubscriptions: subscriptions,
-        events,
-        applications,
-        deals,
-        revenue: null, // can be aggregated from Stripe if needed
-      },
-    });
+    const stats = await getEnhancedStats();
+    res.json({ success: true, stats });
   } catch (err) {
     next(err);
   }
 }
 
-/**
- * List users with optional role filter.
- */
+export async function search(req, res, next) {
+  try {
+    const { q = '', type = 'all', limit } = req.query;
+    const results = await adminSearch(q, type, limit);
+    res.json({ success: true, results });
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function getCustomers(req, res, next) {
+  try {
+    const { q, role, page, limit } = req.query;
+    const data = await listCustomers({ q, role, page, limit });
+    res.json({ success: true, ...data });
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function getDeals(req, res, next) {
+  try {
+    const { q, status, page, limit } = req.query;
+    const data = await listDealsAdmin({ q, status, page, limit });
+    res.json({ success: true, ...data });
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function getNewsletterStatsHandler(req, res, next) {
+  try {
+    const stats = await getNewsletterStats();
+    res.json({ success: true, stats });
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function getNewsletterSubscribers(req, res, next) {
+  try {
+    const { q, page, limit } = req.query;
+    const data = await listNewsletterSubscribers({ q, page, limit });
+    res.json({ success: true, ...data });
+  } catch (err) {
+    next(err);
+  }
+}
+
 export async function listUsers(req, res, next) {
   try {
     const { role, page = 1, limit = 20 } = req.query;
-    const filter = {};
-    if (role) filter.role = role;
-    const skip = (Number(page) - 1) * Number(limit);
-    const [users, total] = await Promise.all([
-      User.find(filter).select('-password -refreshToken').sort({ createdAt: -1 }).skip(skip).limit(Number(limit)).lean(),
-      User.countDocuments(filter),
-    ]);
+    const data = await listCustomers({ q: '', role, page, limit });
     res.json({
       success: true,
-      users,
-      pagination: { page: Number(page), limit: Number(limit), total, pages: Math.ceil(total / Number(limit)) },
+      users: data.customers,
+      pagination: data.pagination,
     });
   } catch (err) {
     next(err);
   }
 }
 
-/**
- * Suspend user.
- */
 export async function suspendUser(req, res, next) {
   try {
     const { id } = req.params;
@@ -72,9 +101,6 @@ export async function suspendUser(req, res, next) {
   }
 }
 
-/**
- * Unsuspend user.
- */
 export async function unsuspendUser(req, res, next) {
   try {
     const user = await User.findByIdAndUpdate(req.params.id, { isSuspended: false }, { new: true });
@@ -85,9 +111,6 @@ export async function unsuspendUser(req, res, next) {
   }
 }
 
-/**
- * Manually cancel subscription (set to canceled, clear Stripe refs if any).
- */
 export async function cancelSubscription(req, res, next) {
   try {
     const { userId } = req.params;
@@ -103,63 +126,100 @@ export async function cancelSubscription(req, res, next) {
   }
 }
 
-/**
- * List events (admin view).
- */
 export async function listEvents(req, res, next) {
   try {
-    const events = await Event.find().populate('venueId', 'email').sort({ createdAt: -1 }).limit(100).lean();
-    res.json({ success: true, events });
+    const { q, page, limit } = req.query;
+    const data = await listEventsAdmin({ q, page, limit });
+    res.json({ success: true, ...data });
   } catch (err) {
     next(err);
   }
 }
 
-/**
- * List applications (admin).
- */
+export async function getEventAdmin(req, res, next) {
+  try {
+    const data = await getEventAdminById(req.params.id);
+    if (!data) throw new NotFoundError('Event not found');
+    res.json({ success: true, ...data });
+  } catch (err) {
+    next(err);
+  }
+}
+
 export async function listApplications(req, res, next) {
   try {
-    const applications = await Application.find()
-      .populate('eventId')
-      .populate('musicianId', 'email')
-      .sort({ createdAt: -1 })
-      .limit(100)
-      .lean();
-    res.json({ success: true, applications });
+    const { q, page, limit } = req.query;
+    const data = await listApplicationsAdmin({ q, page, limit });
+    res.json({ success: true, ...data });
   } catch (err) {
     next(err);
   }
 }
 
-/**
- * List deals (admin).
- */
-export async function listDeals(req, res, next) {
-  try {
-    const deals = await Deal.find()
-      .populate('eventId')
-      .populate('musicianId', 'email')
-      .populate('venueId', 'email')
-      .sort({ createdAt: -1 })
-      .limit(100)
-      .lean();
-    res.json({ success: true, deals });
-  } catch (err) {
-    next(err);
-  }
-}
-
-/**
- * List subscriptions (admin).
- */
 export async function listSubscriptions(req, res, next) {
   try {
-    const subs = await Subscription.find()
-      .populate('userId', 'email role')
-      .sort({ currentPeriodEnd: -1 })
-      .lean();
-    res.json({ success: true, subscriptions: subs });
+    const { q, page = 1, limit = 50 } = req.query;
+    const filter = {};
+    const regex = q && q.trim() ? new RegExp(q.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i') : null;
+
+    if (regex) {
+      const users = await User.find({ email: regex }).select('_id').lean();
+      filter.userId = { $in: users.map((u) => u._id) };
+    }
+
+    const pageNum = Math.max(1, Number(page) || 1);
+    const limitNum = Math.min(100, Math.max(1, Number(limit) || 50));
+    const skip = (pageNum - 1) * limitNum;
+
+    const [subscriptions, total] = await Promise.all([
+      Subscription.find(filter)
+        .populate('userId', 'email role')
+        .sort({ currentPeriodEnd: -1 })
+        .skip(skip)
+        .limit(limitNum)
+        .lean(),
+      Subscription.countDocuments(filter),
+    ]);
+
+    res.json({
+      success: true,
+      subscriptions,
+      pagination: { page: pageNum, limit: limitNum, total, pages: Math.ceil(total / limitNum) },
+    });
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function listSupportTickets(req, res, next) {
+  try {
+    const { status, q, page, limit } = req.query;
+    const data = await listSupportTicketsAdmin({ status, q, page, limit });
+    res.json({ success: true, ...data });
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function getSupportTicket(req, res, next) {
+  try {
+    const ticket = await getSupportTicketAdmin(req.params.id);
+    res.json({ success: true, ticket });
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function updateSupportTicket(req, res, next) {
+  try {
+    const { status, adminNote } = req.validated;
+    const ticket = await updateSupportTicketAdmin({
+      ticketId: req.params.id,
+      status,
+      adminNote,
+      adminId: req.user._id,
+    });
+    res.json({ success: true, ticket });
   } catch (err) {
     next(err);
   }

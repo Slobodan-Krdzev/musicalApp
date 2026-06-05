@@ -1,5 +1,13 @@
 import Link from 'next/link';
 import { PublicNavbar } from '@/components/PublicNavbar';
+import { createPageMetadata } from '@/lib/metadata';
+
+export const metadata = createPageMetadata({
+  title: 'About Us',
+  description:
+    'Learn how GigConnection helps musicians and venues book live gigs, manage applications, and build lasting partnerships in the live music industry.',
+  path: '/about',
+});
 
 export default function AboutPage() {
   return (

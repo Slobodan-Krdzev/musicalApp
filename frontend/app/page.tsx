@@ -3,6 +3,14 @@ import { UnderDevelopmentModal } from '@/components/UnderDevelopmentModal';
 import { PublicNavbar } from '@/components/PublicNavbar';
 import { NewsletterSection } from '@/components/home/NewsletterSection';
 import { cn } from '@/lib/cn';
+import { createPageMetadata } from '@/lib/metadata';
+
+export const metadata = createPageMetadata({
+  title: 'Book Live Music Gigs',
+  description:
+    'GigConnection connects musicians, bands, and venues. Browse parties and events, apply to gigs, negotiate deals, and grow your live music career.',
+  path: '/',
+});
 
 export default function LandingPage() {
   return (

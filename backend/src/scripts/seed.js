@@ -30,9 +30,10 @@ async function seed() {
     { email: 'venue@demo.com', password: hashedPassword, role: ROLES.VENUE },
     { upsert: true, new: true }
   );
+  await User.deleteOne({ email: 'admin@demo.com', role: ROLES.SUPERADMIN });
   const admin = await User.findOneAndUpdate(
-    { email: 'admin@demo.com' },
-    { email: 'admin@demo.com', password: hashedPassword, role: ROLES.SUPERADMIN },
+    { email: 'connectiongig@gmail.com' },
+    { email: 'connectiongig@gmail.com', password: hashedPassword, role: ROLES.SUPERADMIN },
     { upsert: true, new: true }
   );
 
@@ -111,7 +112,7 @@ async function seed() {
   );
 
   console.log('Seed done.');
-  console.log('Demo users: musician@demo.com / venue@demo.com / admin@demo.com (password: password123)');
+  console.log('Demo users: musician@demo.com / venue@demo.com / connectiongig@gmail.com (password: password123)');
   await mongoose.disconnect();
   process.exit(0);
 }

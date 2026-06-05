@@ -11,3 +11,4 @@ export { DealChatReadState } from './DealChatReadState.js';
 export { Notification } from './Notification.js';
 export { Subscription, PLAN_IDS } from './Subscription.js';
 export { NewsletterSubscriber } from './NewsletterSubscriber.js';
+export { SupportTicket, SUPPORT_STATUSES } from './SupportTicket.js';

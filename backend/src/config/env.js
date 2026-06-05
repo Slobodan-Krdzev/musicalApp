@@ -36,6 +36,9 @@ export const CORS_ORIGINS = FRONTEND_URL.split(',')
 export const RESEND_API_KEY = process.env.RESEND_API_KEY || '';
 export const EMAIL_FROM = process.env.EMAIL_FROM || 'GigConnection <onboarding@resend.dev>';
 
+export const SUPPORT_EMAIL = process.env.SUPPORT_EMAIL || 'connectiongig@gmail.com';
+export const SUPPORT_PHONE = process.env.SUPPORT_PHONE || '';
+
 // Legacy SMTP config (optional fallback / older setups)
 export const SMTP_HOST = process.env.SMTP_HOST || '';
 export const SMTP_PORT = parseInt(process.env.SMTP_PORT || '587', 10);

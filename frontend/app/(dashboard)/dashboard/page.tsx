@@ -407,8 +407,10 @@ export default function DashboardPage() {
 
   const [checkoutNotice, setCheckoutNotice] = useState<'success' | 'cancelled' | null>(null);
 
-  // Handle returns from Stripe Checkout / billing portal and deep links from emails.
-  // Read from window (not useSearchParams) to avoid requiring a Suspense boundary on this page.
+  const urlSearch = typeof window !== 'undefined' ? window.location.search : '';
+
+  // Handle returns from Stripe Checkout / billing portal and deep links (e.g. ?tab=notifications).
+  // urlSearch in deps so in-app navigation to /dashboard?tab=… updates the active sidebar tab.
   useEffect(() => {
     if (typeof window === 'undefined') return;
     const params = new URLSearchParams(window.location.search);
@@ -428,7 +430,7 @@ export default function DashboardPage() {
       const qs = params.toString();
       window.history.replaceState(null, '', `${window.location.pathname}${qs ? `?${qs}` : ''}`);
     }
-  }, [queryClient, showSummaryTab]);
+  }, [urlSearch, queryClient, showSummaryTab]);
 
   useEffect(() => {
     if (user && !showSummaryTab && activeTab === 'summary') {

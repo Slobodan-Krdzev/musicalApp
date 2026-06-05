@@ -7,9 +7,10 @@ import { useAuth } from '@/hooks/useAuth';
 type ProtectedRouteProps = {
   children: React.ReactNode;
   requireRole?: 'MUSICIAN' | 'VENUE' | 'SUPERADMIN';
+  superAdminAllowed?: boolean;
 };
 
-export function ProtectedRoute({ children, requireRole }: ProtectedRouteProps) {
+export function ProtectedRoute({ children, requireRole, superAdminAllowed = false }: ProtectedRouteProps) {
   const { user, isLoading } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
@@ -21,16 +22,23 @@ export function ProtectedRoute({ children, requireRole }: ProtectedRouteProps) {
       return;
     }
     if (requireRole && user.role !== requireRole) {
-      router.replace('/dashboard');
+      router.replace(user.role === 'SUPERADMIN' ? '/admin' : '/dashboard');
+      return;
+    }
+
+    if (!requireRole && user.role === 'SUPERADMIN' && !superAdminAllowed) {
+      router.replace('/admin');
       return;
     }
     const isProfileRoute = pathname === '/profile';
     const isVerifyRoute = pathname === '/verify-email';
+    const isSupportRoute = pathname === '/support' || pathname.startsWith('/support/');
 
     if (
       (user.role === 'MUSICIAN' || user.role === 'VENUE') &&
       !user.hasCompletedProfile &&
-      !isProfileRoute
+      !isProfileRoute &&
+      !isSupportRoute
     ) {
       router.replace('/profile');
       return;
@@ -41,11 +49,12 @@ export function ProtectedRoute({ children, requireRole }: ProtectedRouteProps) {
       user.hasCompletedProfile &&
       !user.isEmailVerified &&
       !isProfileRoute &&
-      !isVerifyRoute
+      !isVerifyRoute &&
+      !isSupportRoute
     ) {
       router.replace('/verify-email');
     }
-  }, [user, isLoading, requireRole, router, pathname]);
+  }, [user, isLoading, requireRole, superAdminAllowed, router, pathname]);
 
   if (isLoading) {
     return (
@@ -58,13 +67,15 @@ export function ProtectedRoute({ children, requireRole }: ProtectedRouteProps) {
   if (requireRole && user.role !== requireRole) return null;
 
   const isMusicianOrVenue = user.role === 'MUSICIAN' || user.role === 'VENUE';
-  const blockedByProfile = isMusicianOrVenue && !user.hasCompletedProfile && pathname !== '/profile';
+  const isSupportRoute = pathname === '/support' || pathname.startsWith('/support/');
+  const blockedByProfile = isMusicianOrVenue && !user.hasCompletedProfile && pathname !== '/profile' && !isSupportRoute;
   const blockedByEmail =
     isMusicianOrVenue &&
     user.hasCompletedProfile &&
     !user.isEmailVerified &&
     pathname !== '/profile' &&
-    pathname !== '/verify-email';
+    pathname !== '/verify-email' &&
+    !isSupportRoute;
 
   if (blockedByProfile || blockedByEmail) return null;
 

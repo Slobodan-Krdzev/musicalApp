@@ -25,11 +25,16 @@ export function Header() {
     !user.hasCompletedProfile;
 
   const showDashboard = canAccessDashboard(user);
+  const isSuperAdmin = user?.role === 'SUPERADMIN';
+  const homeHref = isSuperAdmin ? '/admin' : '/';
+
+  const showNotifications = (showDashboard || isSuperAdmin) && !isInProfileWizard;
+  const notificationsHref = isSuperAdmin ? '/admin?tab=support' : '/dashboard?tab=notifications';
 
   const { data: notifsData } = useQuery({
     queryKey: ['notifications-count'],
     queryFn: () => apiRequest<{ unreadCount: number }>('/api/notifications?limit=1'),
-    enabled: showDashboard && !isInProfileWizard,
+    enabled: showNotifications,
     refetchInterval: 15000,
   });
 
@@ -53,13 +58,18 @@ export function Header() {
     setOpen(false);
   }, [pathname]);
 
-  const navItems: NavItem[] = [
-    { href: '/parties', label: 'Parties', show: true },
-    { href: '/events', label: 'Events', show: user?.role === 'MUSICIAN' },
-    { href: '/offerings', label: 'Offerings', show: user?.role === 'VENUE' },
-    { href: '/dashboard', label: 'Dashboard', show: showDashboard && !isInProfileWizard },
-    { href: '/admin', label: 'Admin', show: user?.role === 'SUPERADMIN' },
-  ].filter((i) => i.show);
+  const navItems: NavItem[] = isSuperAdmin
+    ? [
+        { href: '/admin', label: 'Admin', show: true },
+        { href: '/support', label: 'Support', show: true },
+      ]
+    : [
+        { href: '/parties', label: 'Parties', show: true },
+        { href: '/events', label: 'Events', show: user?.role === 'MUSICIAN' },
+        { href: '/offerings', label: 'Offerings', show: user?.role === 'VENUE' },
+        { href: '/dashboard', label: 'Dashboard', show: showDashboard && !isInProfileWizard },
+        { href: '/support', label: 'Support', show: !!user },
+      ].filter((i) => i.show);
 
   const linkClass = (href: string) =>
     cn(
@@ -83,7 +93,7 @@ export function Header() {
       <header className="sticky top-0 z-[200] border-b border-zinc-800/60 bg-zinc-950/85 backdrop-blur supports-[backdrop-filter]:bg-zinc-950/70">
         <div className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-3 px-3 sm:px-4 lg:px-8">
           <Link
-            href="/"
+            href={homeHref}
             className="flex min-w-0 items-center gap-2.5 rounded-lg outline-none ring-offset-2 ring-offset-zinc-950 focus-visible:ring-2 focus-visible:ring-indigo-500"
           >
             <BrandMark />
@@ -104,8 +114,8 @@ export function Header() {
               </Link>
             ))}
 
-            {!isLoading && showDashboard && !isInProfileWizard && (
-              <Link href="/dashboard" className="relative -mx-1 px-1" aria-label="Notifications">
+            {!isLoading && showNotifications && (
+              <Link href={notificationsHref} className="relative -mx-1 px-1" aria-label="Notifications">
                 <svg
                   className="h-5 w-5 text-zinc-400 transition-colors hover:text-zinc-100"
                   fill="none"
@@ -156,9 +166,9 @@ export function Header() {
           </nav>
 
           <div className="flex shrink-0 items-center gap-2 md:hidden">
-            {!isLoading && showDashboard && !isInProfileWizard && (
+            {!isLoading && showNotifications && (
               <Link
-                href="/dashboard"
+                href={notificationsHref}
                 className="relative inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-zinc-800 bg-zinc-950/80 text-zinc-200 transition-colors hover:bg-zinc-900"
                 aria-label="Notifications"
               >

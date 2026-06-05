@@ -4,6 +4,7 @@ import { createNotification } from '../services/notificationService.js';
 import { notifyFinalizedDeal } from '../services/partyService.js';
 import { emailService } from '../services/emailService.js';
 import { FRONTEND_URL } from '../config/env.js';
+import { emitDealFinalizationUpdated } from '../services/applicationRealtimeService.js';
 
 const REPLY_WINDOW_HOURS = 24;
 
@@ -704,12 +705,16 @@ export async function finalizeApplication(req, res, next) {
     await application.save();
 
     const bothFinalized = application.applicantFinalizedAt && application.ownerFinalizedAt;
+    const io = req.app.get('io');
+
     if (bothFinalized) {
       await completeApplicationFinalization(application);
+      await emitDealFinalizationUpdated(io, application._id, true);
       return res.json({ success: true, application, fullyFinalized: true });
     }
 
     await notifyPartnerToFinalize(application, req.user._id);
+    await emitDealFinalizationUpdated(io, application._id, false);
     res.json({ success: true, application, fullyFinalized: false });
   } catch (err) {
     next(err);

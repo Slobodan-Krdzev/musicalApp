@@ -36,7 +36,7 @@ export function getAccessToken(): string | null {
 
 export function canAccessDashboard(user: User | null | undefined): boolean {
   if (!user) return false;
-  if (user.role === 'SUPERADMIN') return true;
+  if (user.role === 'SUPERADMIN') return false;
   if (user.role === 'MUSICIAN' || user.role === 'VENUE') {
     return !!user.hasCompletedProfile && !!user.isEmailVerified;
   }
@@ -44,6 +44,7 @@ export function canAccessDashboard(user: User | null | undefined): boolean {
 }
 
 export function getPostAuthPath(user: User): string {
+  if (user.role === 'SUPERADMIN') return '/admin';
   if (user.role === 'MUSICIAN' || user.role === 'VENUE') {
     if (!user.hasCompletedProfile) return '/profile';
     if (!user.isEmailVerified) return '/verify-email';

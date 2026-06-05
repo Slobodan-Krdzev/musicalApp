@@ -1,5 +1,11 @@
 import { Header } from '@/components/Layout/Header';
 import { ProtectedRoute } from '@/components/ProtectedRoute';
+import { createPageMetadata } from '@/lib/metadata';
+
+export const metadata = createPageMetadata({
+  title: 'Admin',
+  noIndex: true,
+});
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   return (

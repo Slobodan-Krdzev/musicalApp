@@ -7,6 +7,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { apiRequest } from '@/lib/api';
 import { getFinalizationStatus } from '@/lib/application';
 import { useAuth } from '@/hooks/useAuth';
+import { useDealFinalizationSync } from '@/hooks/useDealFinalizationSync';
 import { Header } from '@/components/Layout/Header';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
@@ -28,6 +29,8 @@ export default function FinalizeApplicationPage() {
     queryFn: () => apiRequest<{ application: any; entity: any; applicantProfile: any; ownerProfile: any; deal: any }>(`/api/applications/${id}`),
     enabled: !!id && !!user,
   });
+
+  useDealFinalizationSync(id, !!user && !!id);
 
   const app = data?.application;
   const entity = data?.entity;
