@@ -31,13 +31,14 @@ app.use(
     credentials: true,
   })
 );
+
+// Stripe webhook must be registered before express.json() so the raw body is preserved for signature verification
+app.post('/api/stripe/webhook', express.raw({ type: 'application/json' }), webhook);
+
 app.use(express.json({ limit: '10mb' }));
 
 // Serve uploaded files (profiles, etc.)
 app.use('/uploads', express.static(UPLOAD_ROOT));
-
-// Stripe webhook must receive raw body for signature verification
-app.post('/api/stripe/webhook', express.raw({ type: 'application/json' }), webhook);
 
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
