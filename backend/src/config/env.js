@@ -22,6 +22,9 @@ export const STRIPE_WEBHOOK_SECRET = process.env.STRIPE_WEBHOOK_SECRET || '';
 export const STRIPE_PRICE_PRO = process.env.STRIPE_PRICE_PRO || '';
 export const STRIPE_PRICE_PREMIUM = process.env.STRIPE_PRICE_PREMIUM || '';
 
+/** Local free trial length (no Stripe) — applied on signup and manual start-trial */
+export const FREE_TRIAL_DAYS = parseInt(process.env.FREE_TRIAL_DAYS || '30', 10);
+
 export const NODE_ENV = process.env.NODE_ENV || 'development';
 export const PORT = process.env.PORT || 4000;
 export const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:3000';

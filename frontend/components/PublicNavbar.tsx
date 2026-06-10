@@ -80,9 +80,6 @@ export function PublicNavbar({ brandText = BRAND.name }: PublicNavbarProps) {
             <Link href="/about" className="text-zinc-400 hover:text-zinc-100">
               About Us
             </Link>
-            <Link href="/legal" className="text-zinc-400 hover:text-zinc-100">
-              Legal
-            </Link>
             {showAuthLinks && (
               <Link href="/login" className="text-zinc-400 hover:text-zinc-100">
                 Log in
@@ -173,21 +170,6 @@ export function PublicNavbar({ brandText = BRAND.name }: PublicNavbarProps) {
             <span>
               <span className="block">About Us</span>
               <span className="block text-xs font-normal text-zinc-500">Our mission & story</span>
-            </span>
-          </Link>
-          <Link
-            href="/legal"
-            onClick={() => setOpen(false)}
-            className={mobileNavLinkClass(false)}
-          >
-            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-sky-500/15 text-sky-300">
-              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5} aria-hidden>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12c0 1.268-.63 2.39-1.593 3.068a3.745 3.745 0 01-1.043 3.296 3.745 3.745 0 01-3.296 1.043A3.745 3.745 0 0112 21c-1.268 0-2.39-.63-3.068-1.593a3.746 3.746 0 01-3.296-1.043 3.745 3.745 0 01-1.043-3.296A3.745 3.745 0 013 12c0-1.268.63-2.39 1.593-3.068a3.745 3.745 0 011.043-3.296 3.746 3.746 0 013.296-1.043A3.746 3.746 0 0112 3c1.268 0 2.39.63 3.068 1.593a3.746 3.746 0 013.296 1.043 3.746 3.746 0 011.043 3.296A3.745 3.745 0 0121 12z" />
-              </svg>
-            </span>
-            <span>
-              <span className="block">Legal</span>
-              <span className="block text-xs font-normal text-zinc-500">Privacy, terms & trust</span>
             </span>
           </Link>
           {showDashboard && user && (

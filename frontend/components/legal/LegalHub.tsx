@@ -5,7 +5,7 @@ import { useEffect, useRef, useState } from 'react';
 import { cn } from '@/lib/cn';
 import { siteConfig } from '@/lib/site';
 import { LEGAL_SECTIONS, legalSectionHref } from '@/lib/legal';
-import { SUBSCRIPTION_PLANS } from '@/lib/subscription';
+import { SUBSCRIPTION_PLANS, FREE_TRIAL_DAYS } from '@/lib/subscription';
 import { PUBLIC_NAVBAR_HEIGHT_PX } from '@/components/PublicNavbar';
 
 function Section({
@@ -67,7 +67,7 @@ function LegalHero({ compact = false }: { compact?: boolean }) {
           compact ? 'px-1 text-xs leading-snug sm:text-sm' : 'px-1 text-sm sm:mt-4 sm:text-base'
         )}
       >
-        Privacy, terms, data handling, subscriptions, and how GigConnection works — all in one place.
+        Privacy, terms, data handling, party newsletter, subscriptions, and how GigConnection works — all in one place.
       </p>
     </div>
   );
@@ -214,6 +214,10 @@ export function LegalHub() {
               <li>Booking activity: events, offerings, applications, quotes, messages related to deals, and finalized gig records.</li>
               <li>Billing metadata for subscriptions (processed by Stripe — we do not store full card numbers).</li>
               <li>Support tickets and newsletter sign-ups if you contact us or subscribe voluntarily.</li>
+              <li>
+                Party newsletter preferences: email, location (city name or coordinates if you allow GPS), optional genre
+                selections, and subscription timestamps — used only to show relevant parties and send your weekly digest.
+              </li>
             </ul>
             <h3>How we use your data</h3>
             <p>
@@ -262,6 +266,12 @@ export function LegalHub() {
             <p>
               Certain features require an active subscription. Fees, renewal, and cancellation are described in the Subscription Plans
               and Payment Management sections below.
+            </p>
+            <h3>Party newsletter</h3>
+            <p>
+              Browsing public parties requires a free newsletter signup or a GigConnection account. By subscribing, you agree to
+              receive at most one weekly digest email when matching events exist, and you confirm that the email address you provide
+              is yours. See the Newsletter & Parties section for full details.
             </p>
             <h3>Termination</h3>
             <p>
@@ -361,6 +371,67 @@ export function LegalHub() {
             </p>
           </Section>
 
+          <Section id="newsletter" title="Newsletter & Parties">
+            <p>
+              The <Link href="/parties" className="text-violet-400 hover:underline">Parties</Link> page lists upcoming public live
+              music events. Browsing requires a free party newsletter signup or a logged-in GigConnection account.
+            </p>
+            <h3>How signup works</h3>
+            <ul>
+              <li>
+                From the homepage, enter your email and continue to the parties page — your email is pre-filled so you can finish
+                signup in one step.
+              </li>
+              <li>
+                On the parties page, provide your location (city or precise GPS) and optional genre preferences, then confirm to
+                unlock browsing.
+              </li>
+              <li>
+                Logged-in musicians and venues can browse parties without a separate newsletter signup — your account already
+                grants access.
+              </li>
+            </ul>
+            <h3>What we collect for the party newsletter</h3>
+            <ul>
+              <li>Email address — required for access and your weekly digest.</li>
+              <li>Location — a city or area you type, or coordinates if you choose &ldquo;Use precise location&rdquo; in your browser.</li>
+              <li>Optional genre preferences — used to filter matches; leave empty to see all public party styles near you.</li>
+            </ul>
+            <h3>Weekly digest (not instant alerts)</h3>
+            <p>
+              We send <strong className="text-zinc-100">one personalized email per week</strong> when matching parties exist near
+              you. We do not send an email for every new listing. If nothing matches your preferences that week, you will not
+              receive a digest.
+            </p>
+            <h3>What is included — and excluded</h3>
+            <ul>
+              <li>Only upcoming public parties are shown on the parties page and in digests.</li>
+              <li>
+                <strong className="text-zinc-100">Weddings and private events are never listed</strong> on the parties page or
+                included in newsletter emails, regardless of your preferences.
+              </li>
+            </ul>
+            <h3>Location matching</h3>
+            <p>
+              Typed locations are geocoded to match events in your area. If you enable precise location, matches use a default
+              radius of about 40 km. You can also allow browser location on the parties page to sort events by distance — that
+              preference is stored locally in your browser (see Cookies & Local Storage).
+            </p>
+            <h3>Access on return visits</h3>
+            <p>
+              After subscribing, an httpOnly cookie (valid for 90 days) remembers your access on the same browser so you do not
+              need to sign up again each visit.
+            </p>
+            <h3>Unsubscribe</h3>
+            <p>
+              Every digest includes an unsubscribe link. You can also contact{' '}
+              <a href={`mailto:${siteConfig.contactEmail}`} className="text-violet-400 hover:underline">
+                {siteConfig.contactEmail}
+              </a>{' '}
+              to remove your email from the party newsletter.
+            </p>
+          </Section>
+
           <Section id="subscriptions" title="Subscription Plans">
             <p>
               An active subscription unlocks creating listings, applying to gigs, and full dashboard access. Choose the plan that fits
@@ -370,7 +441,7 @@ export function LegalHub() {
               <div className="rounded-2xl border border-zinc-800 bg-zinc-900/50 p-5">
                 <h4 className="text-lg font-semibold text-zinc-100">Free trial</h4>
                 <p className="mt-2 text-sm text-zinc-400">
-                  New accounts can start a <strong className="text-zinc-200">14-day free trial</strong> to explore the platform before
+                  New accounts can start a <strong className="text-zinc-200">{FREE_TRIAL_DAYS}-day free trial</strong> to explore the platform before
                   subscribing. No card required to begin the trial.
                 </p>
               </div>
@@ -447,7 +518,12 @@ export function LegalHub() {
                 allowed location for nearby event discovery.
               </li>
               <li>
-                <strong className="text-zinc-100">UI preferences</strong>: occasional local flags (e.g. dismissing an announcement modal).
+                <strong className="text-zinc-100">Newsletter access</strong> (httpOnly cookie, 90 days): remembers that you
+                subscribed so you can browse parties without re-entering your email on the same browser.
+              </li>
+              <li>
+                <strong className="text-zinc-100">Newsletter preferences</strong>: location and genres you choose on the
+                parties page — used to personalize your weekly party digest. Weddings and private events are never included.
               </li>
             </ul>
             <h3>What we do not use</h3>

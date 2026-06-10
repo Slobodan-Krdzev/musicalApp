@@ -1,5 +1,5 @@
 import Stripe from 'stripe';
-import { STRIPE_SECRET_KEY, STRIPE_PUBLISHABLE_KEY, STRIPE_WEBHOOK_SECRET, FRONTEND_URL } from '../config/env.js';
+import { STRIPE_SECRET_KEY, STRIPE_PUBLISHABLE_KEY, STRIPE_WEBHOOK_SECRET, FRONTEND_URL, FREE_TRIAL_DAYS } from '../config/env.js';
 import { Subscription, PLAN_IDS } from '../models/index.js';
 import {
   getPriceIdForPlan,
@@ -13,8 +13,6 @@ import {
   isStripeConfigured,
 } from '../services/stripeService.js';
 import { ValidationError } from '../utils/errors.js';
-
-const TRIAL_DAYS = 14;
 
 /**
  * Public Stripe config for the browser (publishable key only — safe to expose).
@@ -143,7 +141,7 @@ export async function createPortal(req, res, next) {
 export async function createCheckoutFreeTrial(req, res, next) {
   try {
     const trialEnd = new Date();
-    trialEnd.setDate(trialEnd.getDate() + TRIAL_DAYS);
+    trialEnd.setDate(trialEnd.getDate() + FREE_TRIAL_DAYS);
     await Subscription.findOneAndUpdate(
       { userId: req.user._id },
       {

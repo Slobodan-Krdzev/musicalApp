@@ -1,5 +1,5 @@
 import { Deal, Event, Offering, MusicianProfile, VenueProfile } from '../models/index.js';
-import { notifyNewsletterNewParty } from './newsletterService.js';
+import { isExcludedPublicParty } from './partyPublicFilters.js';
 
 const CLOSEST_RADIUS_KM = 40;
 
@@ -154,9 +154,20 @@ export async function listPublicParties(query = {}) {
           }
         : null,
       location: publicLocation(loc),
+      locationArea: loc
+        ? {
+            city: loc.city || null,
+            region: loc.region || null,
+            country: loc.country || null,
+          }
+        : null,
       distanceKm,
     });
   }
+
+  const now = new Date();
+  parties = parties.filter((p) => new Date(p.date) >= now);
+  parties = parties.filter((p) => !isExcludedPublicParty(p));
 
   if (q) {
     const term = q.toLowerCase().trim();
@@ -224,9 +235,13 @@ export async function listPublicParties(query = {}) {
 
 /** Notify newsletter subscribers after a deal is finalized. */
 export async function notifyFinalizedDeal(dealId) {
-  const result = await listPublicParties({ limit: 1000 });
-  const party = result.parties.find((p) => p.id === dealId.toString());
-  if (party) await notifyNewsletterNewParty(party);
+  // Instant per-deal emails replaced by the weekly personalized digest (newsletterScheduler).
+}
+
+/** All upcoming parties for newsletter matching (no pagination). */
+export async function listUpcomingPartiesForDigest() {
+  const result = await listPublicParties({ limit: 500, page: 1 });
+  return result.parties;
 }
 
 export { CLOSEST_RADIUS_KM };

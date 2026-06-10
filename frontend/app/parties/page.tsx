@@ -1,11 +1,15 @@
 'use client';
 
-import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useState, useEffect, useMemo, useCallback, Suspense } from 'react';
 import dynamic from 'next/dynamic';
 import Image from 'next/image';
-import { useQuery } from '@tanstack/react-query';
+import { useSearchParams } from 'next/navigation';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { PublicNavbar } from '@/components/PublicNavbar';
 import { SiteFooter } from '@/components/Layout/SiteFooter';
+import { NewsletterGate } from '@/components/parties/NewsletterGate';
+import { useAuth } from '@/hooks/useAuth';
+import { checkNewsletterAccess } from '@/lib/newsletter';
 import { SocialLinksChips } from '@/components/SocialLinksChips';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
@@ -43,7 +47,11 @@ function storeLocation(value: StoredLocation) {
   localStorage.setItem(LOCATION_STORAGE_KEY, value === 'denied' ? 'denied' : JSON.stringify(value));
 }
 
-export default function PartiesPage() {
+function PartiesPageContent() {
+  const searchParams = useSearchParams();
+  const prefilledEmail = searchParams.get('email')?.trim() ?? '';
+  const { user, isLoading: authLoading } = useAuth();
+  const queryClient = useQueryClient();
   const [page, setPage] = useState(1);
   const [filters, setFilters] = useState<PartyFilters>({});
   const [searchInput, setSearchInput] = useState('');
@@ -54,6 +62,7 @@ export default function PartiesPage() {
   const [userCoords, setUserCoords] = useState<{ lat: number; lng: number } | null>(null);
   const [locationStatus, setLocationStatus] = useState<'loading' | 'prompt' | 'granted' | 'denied'>('loading');
   const [locationLoading, setLocationLoading] = useState(false);
+  const [accessOverride, setAccessOverride] = useState(false);
 
   useEffect(() => {
     const stored = readStoredLocation();
@@ -117,15 +126,28 @@ export default function PartiesPage() {
     };
   }, [queryFilters, userCoords]);
 
+  const isLoggedIn = !!user;
+
+  const { data: accessData, isLoading: accessLoading } = useQuery({
+    queryKey: ['newsletter-access'],
+    queryFn: checkNewsletterAccess,
+    enabled: !authLoading && !isLoggedIn,
+    retry: false,
+  });
+
+  const hasPartyAccess = isLoggedIn || !!accessData?.hasAccess || accessOverride;
+  const checkingAccess = authLoading || (!isLoggedIn && accessLoading);
+
   const { data, isLoading } = useQuery({
     queryKey: ['parties', queryFilters],
     queryFn: () => fetchParties(queryFilters),
+    enabled: hasPartyAccess,
   });
 
   const { data: closestData } = useQuery({
     queryKey: ['parties-closest', closestFilters],
     queryFn: () => fetchParties(closestFilters!),
-    enabled: !!closestFilters && locationStatus === 'granted',
+    enabled: hasPartyAccess && !!closestFilters && locationStatus === 'granted',
   });
 
   const parties = data?.parties ?? [];
@@ -154,6 +176,21 @@ export default function PartiesPage() {
       <PublicNavbar />
 
       <main className="mx-auto w-full max-w-7xl flex-1 px-3 py-6 sm:px-4 sm:py-8 lg:px-8">
+        {checkingAccess ? (
+          <div className="flex min-h-[40vh] items-center justify-center">
+            <p className="text-sm text-zinc-500">Loading…</p>
+          </div>
+        ) : !hasPartyAccess ? (
+          <NewsletterGate
+            initialEmail={prefilledEmail}
+            onAccessGranted={() => {
+              setAccessOverride(true);
+              queryClient.invalidateQueries({ queryKey: ['newsletter-access'] });
+              queryClient.invalidateQueries({ queryKey: ['parties'] });
+            }}
+          />
+        ) : (
+          <>
         <div className="mb-6 flex flex-col justify-between gap-3 sm:flex-row sm:items-center">
           <div>
             <h1 className="text-xl font-bold text-zinc-100 sm:text-2xl">Find a Party</h1>
@@ -360,12 +397,32 @@ export default function PartiesPage() {
             )}
           </>
         )}
+        </>
+        )}
       </main>
 
       <SiteFooter />
 
       <PartyDetailModal party={selectedParty} onClose={() => setSelectedParty(null)} />
     </div>
+  );
+}
+
+export default function PartiesPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex min-h-screen flex-col bg-zinc-950">
+          <PublicNavbar />
+          <main className="flex min-h-[40vh] flex-1 items-center justify-center">
+            <p className="text-sm text-zinc-500">Loading…</p>
+          </main>
+          <SiteFooter />
+        </div>
+      }
+    >
+      <PartiesPageContent />
+    </Suspense>
   );
 }
 

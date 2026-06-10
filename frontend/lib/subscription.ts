@@ -1,5 +1,8 @@
 import { apiRequest } from '@/lib/api';
 
+/** Length of the local free trial granted on signup (must match backend FREE_TRIAL_DAYS). */
+export const FREE_TRIAL_DAYS = 30;
+
 export type PlanId = 'pro' | 'premium';
 
 export type SubscriptionPlan = {

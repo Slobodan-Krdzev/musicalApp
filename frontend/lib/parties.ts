@@ -67,7 +67,7 @@ export async function fetchParties(filters: PartyFilters = {}): Promise<PartiesR
   Object.entries(filters).forEach(([k, v]) => {
     if (v) params[k] = v;
   });
-  return apiRequest<PartiesResponse>('/api/parties', { params, token: null });
+  return apiRequest<PartiesResponse>('/api/parties', { params });
 }
 
 export function partyDisplayTitle(party: PartyItem) {

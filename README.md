@@ -96,7 +96,7 @@ npm run dev
 
 ### Subscription
 
-- **Free Trial** – 14 days, limited access (stored in DB; no Stripe).  
+- **Free Trial** – 30 days, limited access (stored in DB; no Stripe).  
 - **Pro / Premium** – Stripe Checkout; webhook updates subscription status.  
 - Middleware and controllers block create/apply when subscription is inactive.  
 

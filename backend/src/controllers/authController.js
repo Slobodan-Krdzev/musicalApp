@@ -4,8 +4,7 @@ import { ValidationError } from '../utils/errors.js';
 import { Subscription, PLAN_IDS } from '../models/index.js';
 import { MusicianProfile, VenueProfile } from '../models/index.js';
 import { emailService } from '../services/emailService.js';
-
-const TRIAL_DAYS = 14;
+import { FREE_TRIAL_DAYS } from '../config/env.js';
 
 export async function register(req, res, next) {
   try {
@@ -17,7 +16,7 @@ export async function register(req, res, next) {
 
     if (role !== 'SUPERADMIN') {
       const trialEnd = new Date();
-      trialEnd.setDate(trialEnd.getDate() + TRIAL_DAYS);
+      trialEnd.setDate(trialEnd.getDate() + FREE_TRIAL_DAYS);
       await Subscription.create({
         userId: user._id,
         planId: PLAN_IDS.FREE_TRIAL,

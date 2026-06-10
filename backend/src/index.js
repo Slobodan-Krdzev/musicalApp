@@ -4,6 +4,7 @@ import { connectDB } from './config/db.js';
 import { PORT } from './config/env.js';
 import { startApplicationScheduler } from './services/applicationScheduler.js';
 import { startSubscriptionScheduler } from './services/subscriptionScheduler.js';
+import { startNewsletterScheduler } from './services/newsletterScheduler.js';
 import { initDealChatSocket } from './sockets/dealChatSocket.js';
 
 connectDB().then(() => {
@@ -14,5 +15,6 @@ connectDB().then(() => {
     console.log(`[Server] API running on port ${PORT}`);
     startApplicationScheduler();
     startSubscriptionScheduler();
+    startNewsletterScheduler();
   });
 });

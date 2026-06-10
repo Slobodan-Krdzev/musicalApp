@@ -1,28 +1,23 @@
 'use client';
 
 import { useState } from 'react';
-import { subscribeNewsletter } from '@/lib/newsletter';
+import { useRouter } from 'next/navigation';
 import { cn } from '@/lib/cn';
 
 export function NewsletterSection() {
+  const router = useRouter();
   const [email, setEmail] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [success, setSuccess] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  async function handleSubmit(e: React.FormEvent) {
+  function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
-    setLoading(true);
-    try {
-      await subscribeNewsletter(email.trim());
-      setSuccess(true);
-      setEmail('');
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Could not subscribe');
-    } finally {
-      setLoading(false);
+    const trimmed = email.trim();
+    if (!trimmed) {
+      setError('Enter your email address.');
+      return;
     }
+    router.push(`/parties?email=${encodeURIComponent(trimmed)}`);
   }
 
   return (
@@ -37,51 +32,41 @@ export function NewsletterSection() {
       <div className="relative mx-auto max-w-2xl text-center">
         <h2 className="text-3xl font-bold text-white sm:text-4xl">Wanna Party!</h2>
         <p className="mt-3 text-base text-zinc-400 sm:text-lg">
-          Join our newsletter and receive emails for upcoming events and parties.
+          Join our newsletter for a weekly digest of parties near you. Enter your email to finish signup on the parties
+          page with your location and preferences.
         </p>
 
-        {success ? (
-          <p className="mt-8 rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-200">
-            You&apos;re in! Check your inbox for a confirmation email.
-          </p>
-        ) : (
-          <form onSubmit={handleSubmit} className="mx-auto mt-8 max-w-md">
-            <div className="relative">
-              <input
-                type="email"
-                required
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="your@email.com"
-                className={cn(
-                  'w-full rounded-full border border-zinc-700 bg-zinc-900/80 py-3.5 pl-5 pr-14 text-zinc-100 placeholder-zinc-500',
-                  'focus:border-violet-500 focus:outline-none focus:ring-2 focus:ring-violet-500/30'
-                )}
-              />
-              <button
-                type="submit"
-                disabled={loading}
-                className="absolute right-1.5 top-1/2 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full bg-violet-500 text-white transition-colors hover:bg-violet-400 disabled:opacity-60"
-                aria-label="Subscribe"
-              >
-                {loading ? (
-                  <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" />
-                ) : (
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden>
-                    <path
-                      d="M5 12h14M13 6l6 6-6 6"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    />
-                  </svg>
-                )}
-              </button>
-            </div>
-            {error && <p className="mt-3 text-sm text-red-400">{error}</p>}
-          </form>
-        )}
+        <form onSubmit={handleSubmit} className="mx-auto mt-8 max-w-md">
+          <div className="relative">
+            <input
+              type="email"
+              required
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="your@email.com"
+              className={cn(
+                'w-full rounded-full border border-zinc-700 bg-zinc-900/80 py-3.5 pl-5 pr-14 text-zinc-100 placeholder-zinc-500',
+                'focus:border-violet-500 focus:outline-none focus:ring-2 focus:ring-violet-500/30'
+              )}
+            />
+            <button
+              type="submit"
+              className="absolute right-1.5 top-1/2 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full bg-violet-500 text-white transition-colors hover:bg-violet-400"
+              aria-label="Continue to parties"
+            >
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden>
+                <path
+                  d="M5 12h14M13 6l6 6-6 6"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+              </svg>
+            </button>
+          </div>
+          {error && <p className="mt-3 text-sm text-red-400">{error}</p>}
+        </form>
       </div>
     </section>
   );

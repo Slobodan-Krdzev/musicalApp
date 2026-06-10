@@ -4,6 +4,7 @@ export const LEGAL_SECTIONS = [
   { id: 'terms', title: 'Terms of Use' },
   { id: 'data-security', title: 'Passwords & User Data' },
   { id: 'how-to-use', title: 'How to Use GigConnection' },
+  { id: 'newsletter', title: 'Newsletter & Parties' },
   { id: 'subscriptions', title: 'Subscription Plans' },
   { id: 'payments', title: 'Payment Management' },
   { id: 'cookies', title: 'Cookies & Local Storage' },
