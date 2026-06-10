@@ -13,6 +13,9 @@ const newsletterSubscriberSchema = new mongoose.Schema(
       genres: [{ type: String, trim: true }],
     },
     lastDigestSentAt: { type: Date, default: null, index: true },
+    emailVerified: { type: Boolean, default: false, index: true },
+    verificationTokenHash: { type: String, select: false },
+    verificationExpires: { type: Date, select: false },
   },
   { timestamps: true }
 );

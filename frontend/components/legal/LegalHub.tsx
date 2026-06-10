@@ -383,8 +383,11 @@ export function LegalHub() {
                 signup in one step.
               </li>
               <li>
-                On the parties page, provide your location (city or precise GPS) and optional genre preferences, then confirm to
-                unlock browsing.
+                On the parties page, provide your location (city or precise GPS) and optional genre preferences, then submit the form.
+              </li>
+              <li>
+                We email you a verification link. Parties browsing and the weekly digest begin only after you confirm your email
+                address (link valid for 24 hours).
               </li>
               <li>
                 Logged-in musicians and venues can browse parties without a separate newsletter signup — your account already
@@ -419,12 +422,16 @@ export function LegalHub() {
             </p>
             <h3>Access on return visits</h3>
             <p>
-              After subscribing, an httpOnly cookie (valid for 90 days) remembers your access on the same browser so you do not
-              need to sign up again each visit.
+              After your email is verified, an httpOnly cookie (valid for 90 days) remembers your access on the same browser so
+              you do not need to sign up again each visit.
             </p>
             <h3>Unsubscribe</h3>
             <p>
-              Every digest includes an unsubscribe link. You can also contact{' '}
+              Every party newsletter email (verification, welcome, and weekly digest) includes an unsubscribe link that opens{' '}
+              <Link href="/newsletter/unsubscribe" className="text-violet-400 hover:underline">
+                our unsubscribe page
+              </Link>
+              . You can also contact{' '}
               <a href={`mailto:${siteConfig.contactEmail}`} className="text-violet-400 hover:underline">
                 {siteConfig.contactEmail}
               </a>{' '}

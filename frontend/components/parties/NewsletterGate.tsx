@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
-import { grantNewsletterAccess, type NewsletterPreferences } from '@/lib/newsletter';
+import { grantNewsletterAccess, resendNewsletterVerification, type NewsletterPreferences } from '@/lib/newsletter';
 import { MUSICIAN_GENRES } from '@/lib/profileOptions';
 import { cn } from '@/lib/cn';
 import { Button } from '@/components/ui/Button';
@@ -22,6 +22,8 @@ export function NewsletterGate({ onAccessGranted, initialEmail = '' }: Newslette
   const [locating, setLocating] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+  const [pendingVerification, setPendingVerification] = useState(false);
+  const [pendingEmail, setPendingEmail] = useState('');
 
   useEffect(() => {
     if (initialEmail) setEmail(initialEmail);
@@ -80,6 +82,12 @@ export function NewsletterGate({ onAccessGranted, initialEmail = '' }: Newslette
     setLoading(true);
     try {
       const result = await grantNewsletterAccess(email.trim(), buildPreferences());
+      if (result.needsVerification) {
+        setPendingVerification(true);
+        setPendingEmail(email.trim());
+        setSuccess(result.message);
+        return;
+      }
       setSuccess(result.message);
       onAccessGranted();
     } catch (err) {
@@ -87,6 +95,50 @@ export function NewsletterGate({ onAccessGranted, initialEmail = '' }: Newslette
     } finally {
       setLoading(false);
     }
+  }
+
+  async function handleResend() {
+    if (!pendingEmail) return;
+    setError(null);
+    setLoading(true);
+    try {
+      const result = await resendNewsletterVerification(pendingEmail);
+      setSuccess(result.message);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not resend email');
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  if (pendingVerification) {
+    return (
+      <div className="mx-auto flex min-h-[50vh] max-w-xl flex-col items-center justify-center px-2 py-12 text-center sm:py-16">
+        <div className="relative w-full overflow-hidden rounded-2xl border border-violet-500/25 bg-gradient-to-br from-violet-500/10 via-zinc-900/90 to-zinc-950 p-6 sm:p-8">
+          <div className="relative text-center">
+            <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-violet-500/15 ring-1 ring-violet-500/30">
+              <svg className="h-7 w-7 text-violet-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+              </svg>
+            </div>
+            <h1 className="text-2xl font-bold tracking-tight text-zinc-50">Check your email</h1>
+            <p className="mt-3 text-sm leading-relaxed text-zinc-400 sm:text-base">
+              We sent a verification link to{' '}
+              <strong className="text-zinc-200">{pendingEmail}</strong>. Click it to unlock the parties page and your
+              weekly digest.
+            </p>
+            {success && <p className="mt-4 text-sm text-emerald-400">{success}</p>}
+            {error && <p className="mt-4 text-sm text-red-400">{error}</p>}
+            <div className="mt-6 flex flex-col gap-2 sm:flex-row sm:justify-center">
+              <Button variant="secondary" loading={loading} onClick={handleResend}>
+                Resend verification email
+              </Button>
+            </div>
+            <p className="mt-6 text-xs text-zinc-500">The link expires in 24 hours. Check spam if you don&apos;t see it.</p>
+          </div>
+        </div>
+      </div>
+    );
   }
 
   return (
@@ -106,7 +158,7 @@ export function NewsletterGate({ onAccessGranted, initialEmail = '' }: Newslette
           <h1 className="mt-4 text-2xl font-bold tracking-tight text-zinc-50 sm:text-3xl">Wanna see the parties?</h1>
           <p className="mt-3 text-sm leading-relaxed text-zinc-400 sm:text-base">
             Subscribe to browse public parties and get a <strong className="text-zinc-300">weekly email</strong> with gigs
-            matched to your location and taste. Private events and weddings are not listed here.
+            matched to your location and taste. We&apos;ll email you a verification link before you can browse.
           </p>
 
           <form onSubmit={handleSubmit} className="mt-8 space-y-5">
@@ -194,7 +246,7 @@ export function NewsletterGate({ onAccessGranted, initialEmail = '' }: Newslette
             </div>
 
             <Button type="submit" className="w-full" loading={loading}>
-              Continue to parties
+              Send verification email
             </Button>
           </form>
 

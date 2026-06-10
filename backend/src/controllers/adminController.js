@@ -17,6 +17,7 @@ import {
   updateSupportTicketAdmin,
 } from '../services/supportService.js';
 import { grantFreePass, revokeFreePass } from '../services/adminFreePassService.js';
+import { removeNewsletterSubscriberById } from '../services/newsletterService.js';
 
 export async function getStats(req, res, next) {
   try {
@@ -72,6 +73,23 @@ export async function getNewsletterSubscribers(req, res, next) {
     const data = await listNewsletterSubscribers({ q, page, limit });
     res.json({ success: true, ...data });
   } catch (err) {
+    next(err);
+  }
+}
+
+export async function removeNewsletterSubscriber(req, res, next) {
+  try {
+    const { id } = req.params;
+    const result = await removeNewsletterSubscriberById(id);
+    res.json({
+      success: true,
+      ...result,
+      message: `${result.email} has been removed from the party newsletter.`,
+    });
+  } catch (err) {
+    if (err.message === 'Subscriber not found') {
+      return next(new NotFoundError(err.message));
+    }
     next(err);
   }
 }

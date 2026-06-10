@@ -33,7 +33,7 @@ export function NewsletterSection() {
         <h2 className="text-3xl font-bold text-white sm:text-4xl">Wanna Party!</h2>
         <p className="mt-3 text-base text-zinc-400 sm:text-lg">
           Join our newsletter for a weekly digest of parties near you. Enter your email to finish signup on the parties
-          page with your location and preferences.
+          page — you&apos;ll verify your email before browsing.
         </p>
 
         <form onSubmit={handleSubmit} className="mx-auto mt-8 max-w-md">

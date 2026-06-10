@@ -6,6 +6,7 @@ import {
   getDeals,
   getNewsletterStatsHandler,
   getNewsletterSubscribers,
+  removeNewsletterSubscriber,
   listUsers,
   suspendUser,
   unsuspendUser,
@@ -35,6 +36,7 @@ router.get('/customers', getCustomers);
 router.get('/deals', getDeals);
 router.get('/newsletter/stats', getNewsletterStatsHandler);
 router.get('/newsletter/subscribers', getNewsletterSubscribers);
+router.delete('/newsletter/subscribers/:id', removeNewsletterSubscriber);
 router.get('/users', listUsers);
 router.post('/users/:id/suspend', suspendUser);
 router.post('/users/:id/unsuspend', unsuspendUser);

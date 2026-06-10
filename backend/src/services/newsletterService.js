@@ -16,6 +16,7 @@ const UNSUBSCRIBE_SECRET = process.env.NEWSLETTER_UNSUBSCRIBE_SECRET || JWT_ACCE
 const ACCESS_SECRET = process.env.NEWSLETTER_ACCESS_SECRET || UNSUBSCRIBE_SECRET;
 export const NEWSLETTER_ACCESS_COOKIE = 'gigconnection_newsletter_access';
 const ACCESS_MAX_AGE_SEC = parseInt(process.env.NEWSLETTER_ACCESS_MAX_AGE_SEC || String(90 * 24 * 60 * 60), 10);
+const VERIFICATION_TTL_MS = 24 * 60 * 60 * 1000;
 
 function normalizeEmail(email) {
   return String(email || '').trim().toLowerCase();
@@ -74,15 +75,17 @@ export function clearNewsletterAccessCookie(res) {
   );
 }
 
-/** Verify cookie token and confirm email is still an active subscriber. */
+/** Verify cookie token and confirm email is a verified active subscriber. */
 export async function resolveNewsletterAccessFromRequest(req) {
   const cookies = parseCookies(req);
   const token = cookies[NEWSLETTER_ACCESS_COOKIE];
   const email = verifyNewsletterAccessToken(token);
   if (!email) return null;
 
-  const sub = await NewsletterSubscriber.findOne({ email }).select('_id').lean();
-  return sub ? email : null;
+  const sub = await NewsletterSubscriber.findOne({ email }).select('_id emailVerified').lean();
+  if (!sub) return null;
+  if (sub.emailVerified === false) return null;
+  return email;
 }
 
 export async function getNewsletterAccessStatus(req) {
@@ -104,6 +107,67 @@ export function buildNewsletterUnsubscribeUrl(email) {
   const token = createNewsletterUnsubscribeToken(normalized);
   const params = new URLSearchParams({ email: normalized, token });
   return `${FRONTEND_URL}/newsletter/unsubscribe?${params.toString()}`;
+}
+
+function hashVerificationToken(rawToken) {
+  return crypto.createHash('sha256').update(String(rawToken)).digest('hex');
+}
+
+function generateVerificationCredentials() {
+  const rawToken = crypto.randomBytes(32).toString('hex');
+  return {
+    rawToken,
+    hash: hashVerificationToken(rawToken),
+    expires: new Date(Date.now() + VERIFICATION_TTL_MS),
+  };
+}
+
+export function buildNewsletterVerifyUrl(email, rawToken) {
+  const normalized = normalizeEmail(email);
+  const params = new URLSearchParams({ email: normalized, token: rawToken });
+  return `${FRONTEND_URL}/newsletter/verify?${params.toString()}`;
+}
+
+async function sendNewsletterVerificationEmail(email, rawToken) {
+  const verifyUrl = buildNewsletterVerifyUrl(email, rawToken);
+  await emailService.send(
+    email,
+    'Verify your email to browse parties',
+    emailWrap(
+      'Verify your email',
+      `<p>Thanks for signing up for GigConnection party updates!</p>
+       <p>Confirm your email address to browse public parties and receive your weekly digest:</p>
+       <a href="${verifyUrl}" style="display:inline-block;padding:12px 24px;background:#7c3aed;color:#fff;border-radius:8px;text-decoration:none;font-weight:bold;margin:16px 0;">Verify email</a>
+       <p style="color:#888;font-size:13px;">This link expires in 24 hours.</p>
+       ${newsletterUnsubscribeFooter(email)}`
+    ),
+    `Verify your GigConnection party newsletter email: ${verifyUrl}`
+  );
+}
+
+async function sendNewsletterWelcomeEmail(email) {
+  await emailService.send(
+    email,
+    'Thanks for joining the party!',
+    emailWrap(
+      'Wanna Party!',
+      `<p>Your email is verified — you're all set!</p>
+       <p>We'll send you a <strong>weekly digest</strong> of upcoming parties near you that match your preferences.</p>
+       <a href="${FRONTEND_URL}/parties" style="display:inline-block;padding:12px 24px;background:#7c3aed;color:#fff;border-radius:8px;text-decoration:none;font-weight:bold;margin:16px 0;">Browse parties</a>
+       ${newsletterUnsubscribeFooter(email)}`
+    ),
+    `Thanks for joining the GigConnection party newsletter! Browse parties: ${FRONTEND_URL}/parties Unsubscribe: ${buildNewsletterUnsubscribeUrl(email)}`
+  );
+}
+
+async function issueVerificationChallenge(subscriber) {
+  const { rawToken, hash, expires } = generateVerificationCredentials();
+  subscriber.emailVerified = false;
+  subscriber.verificationTokenHash = hash;
+  subscriber.verificationExpires = expires;
+  await subscriber.save();
+  await sendNewsletterVerificationEmail(subscriber.email, rawToken);
+  return { needsVerification: true };
 }
 
 function newsletterUnsubscribeFooter(email) {
@@ -180,8 +244,8 @@ function buildDigestPartyHtml(party) {
 }
 
 /**
- * Subscribe an email to the party newsletter. Idempotent — re-subscribing is OK.
- * Welcome email is sent only for new subscribers.
+ * Subscribe an email to the party newsletter.
+ * Access is granted only after the subscriber verifies their email.
  */
 export async function subscribeNewsletter(email, source = 'homepage', preferencesInput = null) {
   const normalized = normalizeEmail(email);
@@ -189,31 +253,28 @@ export async function subscribeNewsletter(email, source = 'homepage', preference
     throw new Error('Invalid email address');
   }
 
-  const existing = await NewsletterSubscriber.findOne({ email: normalized }).lean();
-  const update = { email: normalized, source };
+  let subscriber = await NewsletterSubscriber.findOne({ email: normalized }).select(
+    '+verificationTokenHash +verificationExpires'
+  );
+  const isNew = !subscriber;
+
+  if (!subscriber) {
+    subscriber = new NewsletterSubscriber({ email: normalized, source, emailVerified: false });
+  } else {
+    subscriber.source = source;
+  }
 
   if (preferencesInput) {
-    update.preferences = await normalizeSubscriberPreferences(preferencesInput);
+    subscriber.preferences = await normalizeSubscriberPreferences(preferencesInput);
   }
 
-  await NewsletterSubscriber.findOneAndUpdate({ email: normalized }, update, { upsert: true, new: true });
-
-  if (!existing) {
-    await emailService.send(
-      normalized,
-      'Thanks for joining the party!',
-      emailWrap(
-        'Wanna Party!',
-        `<p>Thanks for subscribing to GigConnection party updates!</p>
-       <p>We'll send you a <strong>weekly digest</strong> of upcoming parties near you that match your preferences.</p>
-       <a href="${FRONTEND_URL}/parties" style="display:inline-block;padding:12px 24px;background:#7c3aed;color:#fff;border-radius:8px;text-decoration:none;font-weight:bold;margin:16px 0;">Browse parties</a>
-       ${newsletterUnsubscribeFooter(normalized)}`
-      ),
-      `Thanks for joining the GigConnection party newsletter! Weekly digest of parties near you. Browse: ${FRONTEND_URL}/parties Unsubscribe: ${buildNewsletterUnsubscribeUrl(normalized)}`
-    );
+  if (subscriber.emailVerified === true || subscriber.emailVerified == null) {
+    await subscriber.save();
+    return { email: normalized, isNew, needsVerification: false };
   }
 
-  return { email: normalized, isNew: !existing };
+  await issueVerificationChallenge(subscriber);
+  return { email: normalized, isNew, needsVerification: true };
 }
 
 /**
@@ -233,15 +294,63 @@ export async function verifyExistingNewsletterSubscriber(email, preferencesInput
     throw new Error('Invalid email address');
   }
 
-  const sub = await NewsletterSubscriber.findOne({ email: normalized });
+  const sub = await NewsletterSubscriber.findOne({ email: normalized }).select(
+    '+verificationTokenHash +verificationExpires'
+  );
   if (!sub) throw new Error('Email not on newsletter list');
 
   if (preferencesInput) {
     sub.preferences = await normalizeSubscriberPreferences(preferencesInput);
-    await sub.save();
   }
 
+  if (sub.emailVerified === true || sub.emailVerified == null) {
+    await sub.save();
+    return { email: normalized, needsVerification: false };
+  }
+
+  await issueVerificationChallenge(sub);
+  return { email: normalized, needsVerification: true };
+}
+
+/** Confirm newsletter email from the link in the verification email. */
+export async function confirmNewsletterEmail(email, rawToken) {
+  const normalized = normalizeEmail(email);
+  if (!normalized || !rawToken) throw new Error('Invalid verification link');
+
+  const hash = hashVerificationToken(rawToken);
+  const sub = await NewsletterSubscriber.findOne({
+    email: normalized,
+    verificationTokenHash: hash,
+    verificationExpires: { $gt: new Date() },
+  }).select('+verificationTokenHash +verificationExpires');
+
+  if (!sub) throw new Error('Invalid or expired verification link');
+
+  sub.emailVerified = true;
+  sub.verificationTokenHash = undefined;
+  sub.verificationExpires = undefined;
+  await sub.save();
+
+  await sendNewsletterWelcomeEmail(normalized);
   return { email: normalized };
+}
+
+export async function resendNewsletterVerification(email) {
+  const normalized = normalizeEmail(email);
+  if (!normalized || !isValidEmail(normalized)) {
+    throw new Error('Invalid email address');
+  }
+
+  const sub = await NewsletterSubscriber.findOne({ email: normalized }).select(
+    '+verificationTokenHash +verificationExpires'
+  );
+  if (!sub) throw new Error('Email not on newsletter list');
+  if (sub.emailVerified === true) {
+    return { email: normalized, needsVerification: false };
+  }
+
+  await issueVerificationChallenge(sub);
+  return { email: normalized, needsVerification: true };
 }
 
 export async function sendWeeklyDigestToSubscriber(subscriber, parties) {
@@ -273,6 +382,7 @@ export async function runWeeklyNewsletterDigest() {
   const cutoff = new Date(now.getTime() - NEWSLETTER_DIGEST_INTERVAL_MS);
 
   const subscribers = await NewsletterSubscriber.find({
+    emailVerified: { $ne: false },
     'preferences.locationLabel': { $exists: true, $ne: '' },
     $or: [{ lastDigestSentAt: null }, { lastDigestSentAt: { $lte: cutoff } }],
   }).lean();
@@ -301,6 +411,20 @@ export async function runWeeklyNewsletterDigest() {
   return { sent, skipped };
 }
 
+async function deleteNewsletterSubscriberRecord(query) {
+  const removed = await NewsletterSubscriber.findOneAndDelete(query);
+  if (!removed) return null;
+  return { email: removed.email, accessRevoked: true };
+}
+
+/** Remove a subscriber by MongoDB id (admin). */
+export async function removeNewsletterSubscriberById(id) {
+  if (!id) throw new Error('Subscriber not found');
+  const result = await deleteNewsletterSubscriberRecord({ _id: id });
+  if (!result) throw new Error('Subscriber not found');
+  return result;
+}
+
 /**
  * Remove a subscriber using a signed unsubscribe link from newsletter emails.
  */
@@ -315,8 +439,8 @@ export async function unsubscribeNewsletter(email, token) {
     throw new Error('Invalid unsubscribe link');
   }
 
-  const removed = await NewsletterSubscriber.findOneAndDelete({ email: normalized });
-  if (!removed) throw new Error('Email not found on newsletter list');
+  const result = await deleteNewsletterSubscriberRecord({ email: normalized });
+  if (!result) throw new Error('Email not found on newsletter list');
 
-  return { email: normalized, accessRevoked: true };
+  return result;
 }

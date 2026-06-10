@@ -1,37 +1,46 @@
 'use client';
 
-import { Suspense, useState } from 'react';
+import { Suspense, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { PublicNavbar } from '@/components/PublicNavbar';
 import { Button } from '@/components/ui/Button';
-import { unsubscribeNewsletter } from '@/lib/newsletter';
+import { confirmNewsletterEmail } from '@/lib/newsletter';
 
-function UnsubscribeInner() {
+function VerifyInner() {
   const searchParams = useSearchParams();
   const email = searchParams.get('email') || '';
   const token = searchParams.get('token') || '';
 
-  const hasValidLink = Boolean(email && token);
-  const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error'>(hasValidLink ? 'idle' : 'error');
-  const [message, setMessage] = useState(
-    hasValidLink ? '' : 'This unsubscribe link is invalid or incomplete.'
-  );
+  const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
+  const [message, setMessage] = useState('');
 
-  async function handleUnsubscribe() {
-    if (!email || !token) return;
-    setStatus('loading');
-    setMessage('');
-
-    try {
-      const data = await unsubscribeNewsletter(email, token);
-      setStatus('success');
-      setMessage(data.message || 'You have been unsubscribed.');
-    } catch (err) {
+  useEffect(() => {
+    if (!email || !token) {
       setStatus('error');
-      setMessage(err instanceof Error ? err.message : 'Unsubscribe failed.');
+      setMessage('This verification link is invalid or incomplete.');
+      return;
     }
-  }
+
+    let active = true;
+    setStatus('loading');
+
+    confirmNewsletterEmail(email, token)
+      .then((data) => {
+        if (!active) return;
+        setStatus('success');
+        setMessage(data.message || 'Email verified successfully!');
+      })
+      .catch((err: Error) => {
+        if (!active) return;
+        setStatus('error');
+        setMessage(err.message || 'Verification failed.');
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [email, token]);
 
   return (
     <div className="min-h-screen bg-zinc-950 text-zinc-100">
@@ -47,30 +56,10 @@ function UnsubscribeInner() {
         />
 
         <div className="relative w-full max-w-md rounded-2xl border border-zinc-800/80 bg-black/40 p-8 text-center backdrop-blur-sm">
-          {status === 'idle' && (
-            <>
-              <h1 className="text-xl font-semibold text-zinc-100">Unsubscribe from party updates?</h1>
-              <p className="mt-3 text-sm text-zinc-400">
-                <span className="font-medium text-zinc-200">{email}</span> will be removed from the GigConnection party
-                newsletter. You will lose access to browse public parties without subscribing again.
-              </p>
-              <div className="mt-8 flex flex-col gap-2">
-                <Button className="w-full" variant="danger" onClick={handleUnsubscribe}>
-                  Yes, unsubscribe
-                </Button>
-                <Link href="/">
-                  <Button className="w-full" variant="secondary">
-                    Keep my subscription
-                  </Button>
-                </Link>
-              </div>
-            </>
-          )}
-
           {status === 'loading' && (
             <>
               <div className="mx-auto mb-4 h-12 w-12 animate-spin rounded-full border-2 border-violet-500 border-t-transparent" />
-              <h1 className="text-xl font-semibold text-zinc-100">Unsubscribing…</h1>
+              <h1 className="text-xl font-semibold text-zinc-100">Verifying your email…</h1>
               <p className="mt-2 text-sm text-zinc-400">Please wait a moment.</p>
             </>
           )}
@@ -82,13 +71,9 @@ function UnsubscribeInner() {
                   <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
                 </svg>
               </div>
-              <h1 className="text-xl font-semibold text-zinc-100">You&apos;re unsubscribed</h1>
+              <h1 className="text-xl font-semibold text-zinc-100">Email verified!</h1>
               <p className="mt-2 text-sm text-zinc-400">{message}</p>
-              {email && (
-                <p className="mt-1 text-xs text-zinc-500">
-                  <span className="text-zinc-400">{email}</span> will no longer receive party newsletter emails.
-                </p>
-              )}
+              <p className="mt-1 text-xs text-zinc-500">You can now browse parties and receive your weekly digest.</p>
             </>
           )}
 
@@ -99,15 +84,27 @@ function UnsubscribeInner() {
                   <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
                 </svg>
               </div>
-              <h1 className="text-xl font-semibold text-zinc-100">Couldn&apos;t unsubscribe</h1>
+              <h1 className="text-xl font-semibold text-zinc-100">Verification failed</h1>
               <p className="mt-2 text-sm text-zinc-400">{message}</p>
             </>
           )}
 
-          {status !== 'loading' && status !== 'idle' && (
-            <div className="mt-8">
-              <Link href="/">
-                <Button className="w-full">Back to homepage</Button>
+          {status !== 'loading' && (
+            <div className="mt-8 flex flex-col gap-2">
+              {status === 'success' ? (
+                <Link href="/parties">
+                  <Button className="w-full">Browse parties</Button>
+                </Link>
+              ) : (
+                <Link href="/parties">
+                  <Button className="w-full">Back to parties signup</Button>
+                </Link>
+              )}
+              <Link
+                href="/"
+                className="inline-flex w-full items-center justify-center rounded-lg border border-zinc-700 bg-zinc-900/60 px-4 py-2 text-sm font-medium text-zinc-200 transition-colors hover:bg-zinc-800"
+              >
+                Homepage
               </Link>
             </div>
           )}
@@ -117,7 +114,7 @@ function UnsubscribeInner() {
   );
 }
 
-export default function NewsletterUnsubscribePage() {
+export default function NewsletterVerifyPage() {
   return (
     <Suspense
       fallback={
@@ -126,7 +123,7 @@ export default function NewsletterUnsubscribePage() {
         </div>
       }
     >
-      <UnsubscribeInner />
+      <VerifyInner />
     </Suspense>
   );
 }

@@ -179,7 +179,7 @@ export default function AdminDashboardPage() {
       const params = new URLSearchParams();
       if (debouncedSearch) params.set('q', debouncedSearch);
       params.set('limit', '100');
-      return apiRequest<{ subscribers: Array<{ _id: string; email: string; source?: string; createdAt: string }> }>(
+      return apiRequest<{ subscribers: Array<{ _id: string; email: string; source?: string; emailVerified?: boolean | null; createdAt: string }> }>(
         `/api/admin/newsletter/subscribers?${params}`
       ).then((r) => r.subscribers);
     },
@@ -270,6 +270,16 @@ export default function AdminDashboardPage() {
       queryClient.invalidateQueries({ queryKey: ['admin-stats'] });
     },
     onError: (err: Error) => setFreePassError(err.message),
+  });
+
+  const removeSubscriberMutation = useMutation({
+    mutationFn: (id: string) =>
+      apiRequest(`/api/admin/newsletter/subscribers/${id}`, { method: 'DELETE' }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin-newsletter-subscribers'] });
+      queryClient.invalidateQueries({ queryKey: ['admin-newsletter-stats'] });
+      queryClient.invalidateQueries({ queryKey: ['admin-stats'] });
+    },
   });
 
   const showGlobalSearch = debouncedSearch.length >= 2;
@@ -560,12 +570,31 @@ export default function AdminDashboardPage() {
               ))}
             </div>
           )}
-          <DataTable loading={subscribersLoading} headers={['Email', 'Source', 'Subscribed']} empty="No subscribers found.">
+          <DataTable loading={subscribersLoading} headers={['Email', 'Source', 'Verified', 'Subscribed', 'Actions']} empty="No subscribers found.">
             {(subscribersData || []).map((s) => (
               <tr key={s._id} className="border-b border-zinc-800/50">
                 <td className="py-3 text-zinc-200">{s.email}</td>
                 <td className="py-3"><Badge>{s.source || 'homepage'}</Badge></td>
+                <td className="py-3">
+                  <Badge variant={s.emailVerified === false ? 'default' : 'success'}>
+                    {s.emailVerified === false ? 'Pending' : 'Yes'}
+                  </Badge>
+                </td>
                 <td className="py-3 text-zinc-500 text-sm">{formatDate(s.createdAt)}</td>
+                <td className="py-3">
+                  <Button
+                    size="sm"
+                    variant="danger"
+                    disabled={removeSubscriberMutation.isPending}
+                    onClick={() => {
+                      if (window.confirm(`Remove ${s.email} from the party newsletter?`)) {
+                        removeSubscriberMutation.mutate(s._id);
+                      }
+                    }}
+                  >
+                    Remove
+                  </Button>
+                </td>
               </tr>
             ))}
           </DataTable>
