@@ -46,6 +46,9 @@ export async function createSubscriptionCheckout(req, res, next) {
     );
     res.json({ success: true, clientSecret, subscriptionId });
   } catch (err) {
+    if (err.message?.includes('Free Pass')) {
+      return next(new ValidationError(err.message));
+    }
     next(err);
   }
 }

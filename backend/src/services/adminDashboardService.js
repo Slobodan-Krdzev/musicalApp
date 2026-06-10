@@ -258,6 +258,8 @@ export async function listCustomers({ q, role, page = 1, limit = 25 }) {
             planId: sub.planId,
             status: sub.status,
             currentPeriodEnd: sub.currentPeriodEnd,
+            freePassActive: sub.freePassActive,
+            adminNote: sub.adminNote,
           }
         : null,
     };

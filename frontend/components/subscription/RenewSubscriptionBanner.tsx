@@ -25,7 +25,8 @@ export function RenewSubscriptionBanner({ sub }: { sub: Subscription | null }) {
   if (!expired) return null;
 
   const wasTrial = sub?.planId === 'free_trial';
-  const title = wasTrial ? 'Your free trial has ended' : 'Your subscription has ended';
+  const wasFreePass = sub?.planId === 'free_pass';
+  const title = wasTrial ? 'Your free trial has ended' : wasFreePass ? 'Your Free Pass has ended' : 'Your subscription has ended';
 
   return (
     <>

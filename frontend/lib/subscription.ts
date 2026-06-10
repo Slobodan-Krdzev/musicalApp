@@ -43,6 +43,8 @@ export type Subscription = {
   cancelAtPeriodEnd?: boolean;
   hasAccess?: boolean;
   isExpired?: boolean;
+  freePassActive?: boolean;
+  adminNote?: string | null;
 };
 
 /**

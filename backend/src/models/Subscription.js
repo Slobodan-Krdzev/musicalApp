@@ -3,6 +3,7 @@ import mongoose from 'mongoose';
 /** Plan identifiers - align with Stripe Price IDs in production */
 export const PLAN_IDS = Object.freeze({
   FREE_TRIAL: 'free_trial',
+  FREE_PASS: 'free_pass',
   PRO: 'pro',
   PREMIUM: 'premium',
 });
@@ -27,6 +28,14 @@ const subscriptionSchema = new mongoose.Schema(
     currentPeriodEnd: { type: Date, index: true },
     trialEnd: { type: Date },
     cancelAtPeriodEnd: { type: Boolean, default: false },
+    /** Admin-granted complimentary access (Free Pass). Stripe webhooks must not overwrite while active. */
+    freePassActive: { type: Boolean, default: false, index: true },
+    grantedByAdmin: { type: Boolean, default: false },
+    adminGrantedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
+    adminGrantedAt: { type: Date, default: null },
+    adminRevokedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
+    /** Shown to the user in the app and in grant/revoke emails. */
+    adminNote: { type: String, default: null, maxlength: 2000 },
     // Scheduler bookkeeping so reminder/expiry notifications are sent only once per period.
     expiringNotifiedAt: { type: Date, default: null },
     expiredNotifiedAt: { type: Date, default: null },

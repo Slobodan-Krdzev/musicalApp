@@ -17,7 +17,13 @@ function ctaButton(label, path = '/dashboard?tab=subscription') {
 }
 
 function planLabel(planId) {
+  if (planId === 'free_pass') return 'Free Pass';
   return String(planId || 'subscription').replace('_', ' ');
+}
+
+function noteBlock(note, label = 'Message from the team') {
+  if (!note?.trim()) return '';
+  return `<blockquote style="margin:16px 0;padding:12px 16px;border-left:4px solid #7c3aed;background:#f5f3ff;color:#374151;">${label}: ${note.trim()}</blockquote>`;
 }
 
 function formatDate(date) {
@@ -87,14 +93,20 @@ export async function notifyExpiringReminder(sub, days) {
   const when = days === 1 ? 'tomorrow' : `in ${days} days`;
   const endStr = formatDate(sub.currentPeriodEnd);
   const isTrial = sub.planId === 'free_trial';
-  const autoRenews = !!sub.stripeSubscriptionId && !sub.cancelAtPeriodEnd && !isTrial;
+  const isFreePass = sub.planId === 'free_pass' || sub.freePassActive;
+  const autoRenews = !!sub.stripeSubscriptionId && !sub.cancelAtPeriodEnd && !isTrial && !isFreePass;
 
   let message;
   let subject;
   let title;
   let body;
 
-  if (autoRenews) {
+  if (isFreePass) {
+    message = `Your Free Pass ends ${when} (${endStr}).`;
+    subject = `Your Free Pass ends ${when}`;
+    title = 'Free Pass Ending Soon';
+    body = `<p>${message}</p>${noteBlock(sub.adminNote)}${ctaButton('View Subscription', '/dashboard?tab=subscription')}`;
+  } else if (autoRenews) {
     message = `Your ${planLabel(sub.planId)} plan renews ${when} (${endStr}). Your saved card will be charged automatically — no action needed.`;
     subject = `Your subscription renews ${when}`;
     title = 'Upcoming Renewal';
@@ -116,12 +128,45 @@ export async function notifyExpiringReminder(sub, days) {
 
 /** Subscription has fully lapsed. */
 export async function notifyExpired(sub) {
-  const message = `Your ${planLabel(sub.planId)} subscription has ended. Renew to continue creating listings and applying.`;
+  const isFreePass = sub.planId === 'free_pass' || sub.freePassActive;
+  const message = isFreePass
+    ? 'Your Free Pass has ended. Subscribe to continue creating listings and applying.'
+    : `Your ${planLabel(sub.planId)} subscription has ended. Renew to continue creating listings and applying.`;
   await dispatch(sub, {
     type: 'SUBSCRIPTION_EXPIRED',
     message,
-    subject: 'Your subscription has ended',
-    title: 'Subscription Ended',
-    body: `<p>${message}</p>${ctaButton('Renew Subscription')}`,
+    subject: isFreePass ? 'Your Free Pass has ended' : 'Your subscription has ended',
+    title: isFreePass ? 'Free Pass Ended' : 'Subscription Ended',
+    body: `<p>${message}</p>${noteBlock(sub.adminNote)}${ctaButton(isFreePass ? 'Choose a Plan' : 'Renew Subscription')}`,
+  });
+}
+
+/** Admin granted a Free Pass. */
+export async function notifyFreePassGranted(sub, { stripeCanceled = false, note = null } = {}) {
+  const endStr = formatDate(sub.currentPeriodEnd);
+  const billingLine = stripeCanceled
+    ? ' Your paid subscription has been stopped — you will not be charged while your Free Pass is active.'
+    : '';
+  const message = `You have been granted a Free Pass until ${endStr}.${billingLine}`;
+  await dispatch(sub, {
+    type: 'FREE_PASS_GRANTED',
+    message: note ? `${message} Note: ${note}` : message,
+    subject: 'You received a Free Pass',
+    title: 'Free Pass Activated',
+    body: `<p>${message}</p>${noteBlock(note)}${ctaButton('Go to Dashboard', '/dashboard?tab=subscription')}`,
+  });
+}
+
+/** Admin revoked a Free Pass early. */
+export async function notifyFreePassRevoked(sub, { note = null, grantNote = null } = {}) {
+  const message = note
+    ? 'Your Free Pass has been removed by an administrator.'
+    : 'Your Free Pass has been removed by an administrator. Subscribe to restore full access.';
+  await dispatch(sub, {
+    type: 'FREE_PASS_REVOKED',
+    message: note ? `${message} ${note}` : message,
+    subject: 'Your Free Pass has ended',
+    title: 'Free Pass Removed',
+    body: `<p>${message}</p>${noteBlock(note, 'Message from the team')}${noteBlock(grantNote, 'Previous note')}${ctaButton('Choose a Plan', '/dashboard?tab=subscription')}`,
   });
 }

@@ -46,7 +46,13 @@ async function handleEnded(now) {
     try {
       // Locally-managed (no Stripe subscription) records are flipped to canceled on expiry.
       if (!sub.stripeSubscriptionId && (sub.status === 'active' || sub.status === 'trialing')) {
-        await Subscription.updateOne({ _id: sub._id }, { status: 'canceled' });
+        await Subscription.updateOne(
+          { _id: sub._id },
+          {
+            status: 'canceled',
+            ...(sub.freePassActive ? { freePassActive: false, grantedByAdmin: false } : {}),
+          }
+        );
       }
 
       if (sub.expiredNotifiedAt) continue;

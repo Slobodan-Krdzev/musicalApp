@@ -54,6 +54,14 @@ async function getOrCreateCustomer(userId, userEmail) {
 export async function createSubscription(userId, userEmail, priceId) {
   if (!stripe) throw new Error('Stripe is not configured');
 
+  const localCheck = await Subscription.findOne({ userId });
+  if (localCheck?.freePassActive && localCheck.isCurrentlyActive()) {
+    const end = localCheck.currentPeriodEnd
+      ? localCheck.currentPeriodEnd.toLocaleDateString(undefined, { month: 'long', day: 'numeric', year: 'numeric' })
+      : 'the end of your pass';
+    throw new Error(`You have an active Free Pass until ${end}.`);
+  }
+
   const customerId = await getOrCreateCustomer(userId, userEmail);
 
   // Ensure exactly one subscription per customer: cancel any existing ones (incomplete from
@@ -100,7 +108,11 @@ export async function createSubscription(userId, userEmail, priceId) {
 export async function syncSubscriptionFromStripe(userId) {
   if (!stripe) throw new Error('Stripe is not configured');
 
-  const local = await Subscription.findOne({ userId }).select('stripeCustomerId');
+  const local = await Subscription.findOne({ userId }).select('stripeCustomerId freePassActive currentPeriodEnd status');
+  if (local?.freePassActive && local.isCurrentlyActive()) {
+    return local;
+  }
+
   const customerId = local?.stripeCustomerId;
   if (!customerId) return null;
 
@@ -150,6 +162,8 @@ export async function listInvoices(userId, limit = 12) {
 export async function createBillingPortalSession(userId, returnPath = '/dashboard') {
   if (!stripe) throw new Error('Stripe is not configured');
 
+  await assertNotOnActiveFreePass(userId);
+
   const sub = await Subscription.findOne({ userId }).select('stripeCustomerId');
   if (!sub?.stripeCustomerId) {
     throw new Error('No Stripe customer for this user');
@@ -163,12 +177,21 @@ export async function createBillingPortalSession(userId, returnPath = '/dashboar
   return { url: session.url };
 }
 
+async function assertNotOnActiveFreePass(userId) {
+  const local = await Subscription.findOne({ userId });
+  if (local?.freePassActive && local.isCurrentlyActive()) {
+    throw new Error('Your account is on a Free Pass. Billing changes are managed by the administrator.');
+  }
+}
+
 /**
  * Cancel the user's subscription at the end of the current period. The user keeps access
  * until then, and Stripe stops auto-renewing. Returns the updated local subscription.
  */
 export async function cancelSubscription(userId) {
   if (!stripe) throw new Error('Stripe is not configured');
+
+  await assertNotOnActiveFreePass(userId);
 
   const local = await Subscription.findOne({ userId }).select('stripeSubscriptionId');
   if (!local?.stripeSubscriptionId) throw new Error('No active subscription to cancel');
@@ -191,6 +214,8 @@ export async function cancelSubscription(userId) {
  */
 export async function resumeSubscription(userId) {
   if (!stripe) throw new Error('Stripe is not configured');
+
+  await assertNotOnActiveFreePass(userId);
 
   const local = await Subscription.findOne({ userId }).select('stripeSubscriptionId');
   if (!local?.stripeSubscriptionId) throw new Error('No subscription to resume');
@@ -222,6 +247,10 @@ function planFromPriceId(priceId) {
 async function upsertFromStripeSubscription(sub) {
   const userId = sub.metadata?.userId;
   const filter = userId ? { userId } : { stripeSubscriptionId: sub.id };
+
+  const lookup = userId ? { userId } : { stripeSubscriptionId: sub.id };
+  const existing = await Subscription.findOne(lookup).select('freePassActive');
+  if (existing?.freePassActive) return existing;
 
   const priceId = sub.items?.data?.[0]?.price?.id;
   const update = {
@@ -287,6 +316,11 @@ export async function handleWebhookEvent(event) {
     }
     case 'customer.subscription.deleted': {
       const sub = event.data.object;
+      const local = await Subscription.findOne({ stripeSubscriptionId: sub.id }).select('freePassActive');
+      if (local?.freePassActive) {
+        await Subscription.updateOne({ _id: local._id }, { stripeSubscriptionId: null });
+        break;
+      }
       await Subscription.findOneAndUpdate(
         { stripeSubscriptionId: sub.id },
         { status: 'canceled', cancelAtPeriodEnd: false }

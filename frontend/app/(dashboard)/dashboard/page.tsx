@@ -16,6 +16,7 @@ import { Modal } from '@/components/ui/Modal';
 import { RenewSubscriptionBanner } from '@/components/subscription/RenewSubscriptionBanner';
 import { SubscriptionPlans } from '@/components/subscription/SubscriptionPlans';
 import { DeleteAccountPanel } from '@/components/account/DeleteAccountPanel';
+import { RevenueAnalyticsModal, RevenueAnalyticsPreview } from '@/components/dashboard/RevenueAnalytics';
 import {
   openBillingPortal,
   fetchInvoices,
@@ -97,6 +98,8 @@ type Sub = {
   cancelAtPeriodEnd?: boolean;
   hasAccess?: boolean;
   isExpired?: boolean;
+  freePassActive?: boolean;
+  adminNote?: string | null;
 };
 
 type MusicianProfile = {
@@ -687,6 +690,7 @@ function SummaryStatCard({
   accent,
   onDetails,
   detailsDisabled,
+  detailsLabel = 'Details',
 }: {
   label: string;
   value: string | number;
@@ -694,6 +698,7 @@ function SummaryStatCard({
   accent?: 'violet' | 'emerald' | 'sky' | 'amber';
   onDetails?: () => void;
   detailsDisabled?: boolean;
+  detailsLabel?: string;
 }) {
   const accentClasses = {
     violet: 'border-violet-500/20 bg-violet-500/5 text-violet-300',
@@ -724,7 +729,7 @@ function SummaryStatCard({
           <svg className="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5} aria-hidden>
             <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 6.75h12M8.25 12h12m-12 5.25h12M3.75 6.75h.007v.008H3.75V6.75zm0 5.25h.007v.008H3.75v-.008zm0 5.25h.007v.008H3.75v-.008z" />
           </svg>
-          Details
+          {detailsLabel}
         </button>
       )}
     </div>
@@ -809,9 +814,18 @@ function SummaryPanel({
                     accent="sky"
                     onDetails={() => setDetailsModal('revenue')}
                     detailsDisabled={(summary.approximateRevenue ?? 0) === 0}
+                    detailsLabel="Analytics"
                   />
                 )}
               </div>
+
+              {summary.showRevenue && (summary.revenueItems?.length ?? 0) > 0 && (
+                <RevenueAnalyticsPreview
+                  items={summary.revenueItems}
+                  total={summary.approximateRevenue ?? 0}
+                  onOpen={() => setDetailsModal('revenue')}
+                />
+              )}
 
               <div className="rounded-2xl border border-zinc-800 bg-zinc-900/40 p-5 sm:p-6">
                 <p className="text-xs font-semibold uppercase tracking-wider text-zinc-500">
@@ -875,33 +889,11 @@ function SummaryPanel({
         )}
       </Modal>
 
-      <Modal
+      <RevenueAnalyticsModal
         open={detailsModal === 'revenue'}
         onClose={() => setDetailsModal(null)}
-        title="Revenue breakdown"
-        className="max-w-2xl"
-        position="center"
-      >
-        {!summary?.revenueItems.length ? (
-          <p className="text-sm text-zinc-500">No revenue recorded yet.</p>
-        ) : (
-          <ul className="max-h-[60vh] space-y-3 overflow-y-auto pr-1">
-            {summary.revenueItems.map((item) => (
-              <li key={item.id} className="rounded-xl border border-zinc-800 bg-zinc-900/50 p-4">
-                <div className="flex flex-wrap items-start justify-between gap-3">
-                  <div className="min-w-0">
-                    <p className="font-semibold text-zinc-100">{item.title}</p>
-                    <p className="mt-1 text-sm text-zinc-400">
-                      {item.partnerName} · {formatSummaryDate(item.date || item.completedAt)}
-                    </p>
-                  </div>
-                  <p className="text-lg font-bold text-sky-300">{formatSummaryRevenue(item.amount)}</p>
-                </div>
-              </li>
-            ))}
-          </ul>
-        )}
-      </Modal>
+        items={summary?.revenueItems ?? []}
+      />
     </>
   );
 }
@@ -2535,7 +2527,7 @@ function SubscriptionPanel({
   const [actionError, setActionError] = useState<string | null>(null);
   const [showCancelConfirm, setShowCancelConfirm] = useState(false);
 
-  const hasBilling = !!sub?.planId && sub.planId !== 'free_trial';
+  const hasBilling = !!sub?.planId && sub.planId !== 'free_trial' && sub.planId !== 'free_pass' && !sub?.freePassActive;
   const { data: invoices = [], isLoading: invoicesLoading } = useQuery<Invoice[]>({
     queryKey: ['invoices'],
     queryFn: fetchInvoices,
@@ -2589,8 +2581,14 @@ function SubscriptionPanel({
     ? new Date(sub.currentPeriodEnd).toLocaleDateString(undefined, { month: 'long', day: 'numeric', year: 'numeric' })
     : null;
 
+  const isFreePass = sub?.planId === 'free_pass' || !!sub?.freePassActive;
   const activePlan = SUBSCRIPTION_PLANS.find((p) => p.id === sub?.planId);
-  const planLabel = activePlan?.name ?? (sub?.planId === 'free_trial' ? 'Free trial' : sub?.planId?.replace('_', ' ') ?? 'Plan');
+  const planLabel = isFreePass
+    ? 'Free Pass'
+    : activePlan?.name ?? (sub?.planId === 'free_trial' ? 'Free trial' : sub?.planId?.replace('_', ' ') ?? 'Plan');
+  const includedFeatures = isFreePass
+    ? SUBSCRIPTION_PLANS[0]?.features ?? []
+    : activePlan?.features ?? [];
 
   return (
     <div className="space-y-6">
@@ -2644,24 +2642,35 @@ function SubscriptionPanel({
                         <h2 className="text-2xl font-bold capitalize text-zinc-50">{planLabel}</h2>
                         <Badge variant="success">{sub.status}</Badge>
                       </div>
-                      {activePlan && (
+                      {activePlan && !isFreePass && (
                         <p className="mt-1 text-sm text-zinc-400">
                           {activePlan.price}
                           <span className="text-zinc-500">{activePlan.cadence}</span>
                         </p>
                       )}
+                      {isFreePass && (
+                        <p className="mt-1 text-sm text-zinc-400">Complimentary access — no billing</p>
+                      )}
                       {periodEnd && (
                         <p className="mt-3 text-sm text-zinc-300">
-                          {sub.status === 'trialing'
-                            ? `Trial ends ${periodEnd}`
-                            : sub.cancelAtPeriodEnd
-                              ? `Access until ${periodEnd} · won't renew`
-                              : `Renews ${periodEnd}`}
+                          {isFreePass
+                            ? `Access until ${periodEnd}`
+                            : sub.status === 'trialing'
+                              ? `Trial ends ${periodEnd}`
+                              : sub.cancelAtPeriodEnd
+                                ? `Access until ${periodEnd} · won't renew`
+                                : `Renews ${periodEnd}`}
                         </p>
+                      )}
+                      {isFreePass && sub.adminNote && (
+                        <div className="mt-4 rounded-xl border border-violet-500/25 bg-violet-500/10 px-4 py-3">
+                          <p className="text-xs font-semibold uppercase tracking-wider text-violet-300/80">Message for you</p>
+                          <p className="mt-1 text-sm text-zinc-200 whitespace-pre-wrap">{sub.adminNote}</p>
+                        </div>
                       )}
                     </div>
                   </div>
-                  {sub.planId !== 'free_trial' && (
+                  {sub.planId !== 'free_trial' && !isFreePass && (
                     <div className="flex flex-wrap gap-2 sm:justify-end">
                       <Button variant="secondary" size="sm" loading={portalLoading} onClick={handleManageBilling}>
                         Manage billing
@@ -2683,11 +2692,11 @@ function SubscriptionPanel({
                 </div>
               </div>
 
-              {activePlan && (
+              {includedFeatures.length > 0 && (
                 <div className="border-b border-zinc-800/80 px-6 py-5 sm:px-8">
                   <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-zinc-500">Included</p>
                   <ul className="grid gap-2 sm:grid-cols-2">
-                    {activePlan.features.map((feature) => (
+                    {includedFeatures.map((feature) => (
                       <li key={feature} className="flex items-center gap-2 text-sm text-zinc-300">
                         <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-violet-500/15">
                           <svg className="h-3 w-3 text-violet-400" viewBox="0 0 20 20" fill="currentColor" aria-hidden>

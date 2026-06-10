@@ -16,6 +16,7 @@ import {
   getSupportTicketAdmin,
   updateSupportTicketAdmin,
 } from '../services/supportService.js';
+import { grantFreePass, revokeFreePass } from '../services/adminFreePassService.js';
 
 export async function getStats(req, res, next) {
   try {
@@ -114,6 +115,10 @@ export async function unsuspendUser(req, res, next) {
 export async function cancelSubscription(req, res, next) {
   try {
     const { userId } = req.params;
+    const existing = await Subscription.findOne({ userId }).select('freePassActive');
+    if (existing?.freePassActive) {
+      throw new ForbiddenError('Use revoke Free Pass for this user');
+    }
     const sub = await Subscription.findOneAndUpdate(
       { userId },
       { status: 'canceled', stripeSubscriptionId: null, cancelAtPeriodEnd: false },
@@ -121,6 +126,40 @@ export async function cancelSubscription(req, res, next) {
     );
     if (!sub) throw new NotFoundError('Subscription not found');
     res.json({ success: true, subscription: sub });
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function grantFreePassHandler(req, res, next) {
+  try {
+    const { userId } = req.params;
+    if (userId === req.user._id.toString()) {
+      throw new ForbiddenError('Cannot grant a Free Pass to yourself');
+    }
+    const { endDate, note } = req.validated;
+    const subscription = await grantFreePass({
+      userId,
+      adminId: req.user._id,
+      endDate,
+      note,
+    });
+    res.json({ success: true, subscription });
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function revokeFreePassHandler(req, res, next) {
+  try {
+    const { userId } = req.params;
+    const { note } = req.validated;
+    const subscription = await revokeFreePass({
+      userId,
+      adminId: req.user._id,
+      note,
+    });
+    res.json({ success: true, subscription });
   } catch (err) {
     next(err);
   }

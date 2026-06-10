@@ -10,6 +10,8 @@ import {
   suspendUser,
   unsuspendUser,
   cancelSubscription,
+  grantFreePassHandler,
+  revokeFreePassHandler,
   listEvents,
   getEventAdmin,
   listApplications,
@@ -21,6 +23,7 @@ import {
 import { authenticate, requireSuperAdmin } from '../middleware/auth.js';
 import { validate } from '../middleware/validate.js';
 import { updateSupportTicketSchema } from '../validators/support.js';
+import { grantFreePassSchema, revokeFreePassSchema } from '../validators/adminSubscription.js';
 
 const router = Router();
 
@@ -35,6 +38,8 @@ router.get('/newsletter/subscribers', getNewsletterSubscribers);
 router.get('/users', listUsers);
 router.post('/users/:id/suspend', suspendUser);
 router.post('/users/:id/unsuspend', unsuspendUser);
+router.post('/subscriptions/:userId/free-pass', validate(grantFreePassSchema), grantFreePassHandler);
+router.post('/subscriptions/:userId/revoke-free-pass', validate(revokeFreePassSchema), revokeFreePassHandler);
 router.post('/subscriptions/:userId/cancel', cancelSubscription);
 router.get('/events', listEvents);
 router.get('/events/:id', getEventAdmin);

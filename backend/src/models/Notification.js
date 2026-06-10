@@ -20,6 +20,8 @@ const notificationSchema = new mongoose.Schema(
         'SUBSCRIPTION_EXPIRED',
         'SUBSCRIPTION_RENEWED',
         'SUBSCRIPTION_CANCELED',
+        'FREE_PASS_GRANTED',
+        'FREE_PASS_REVOKED',
         'NEW_MATCHING_EVENT',
         'NEW_MATCHING_OFFERING',
         'EVENT_CREATED',

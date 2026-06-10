@@ -11,6 +11,7 @@ import { Badge } from '@/components/ui/Badge';
 import { Input } from '@/components/ui/Input';
 import { AdminEventDetailModal } from '@/components/admin/AdminEventDetailModal';
 import { AdminSupportPanel } from '@/components/admin/AdminSupportPanel';
+import { AdminFreePassModal, formatPlanLabel } from '@/components/admin/AdminFreePassModal';
 
 type AdminTab = 'overview' | 'customers' | 'deals' | 'newsletter' | 'subscriptions' | 'events' | 'applications' | 'support';
 
@@ -44,7 +45,13 @@ type Customer = {
   completedDeals: number;
   revenue: number;
   spend: number;
-  subscription: { planId: string; status: string; currentPeriodEnd?: string } | null;
+  subscription: {
+    planId: string;
+    status: string;
+    currentPeriodEnd?: string;
+    freePassActive?: boolean;
+    adminNote?: string | null;
+  } | null;
   createdAt: string;
 };
 
@@ -113,6 +120,9 @@ export default function AdminDashboardPage() {
   const [roleFilter, setRoleFilter] = useState('ALL');
   const [dealStatusFilter, setDealStatusFilter] = useState('ALL');
   const [selectedEventId, setSelectedEventId] = useState<string | null>(null);
+  const [grantTarget, setGrantTarget] = useState<{ userId: string; email: string } | null>(null);
+  const [revokeTarget, setRevokeTarget] = useState<{ userId: string; email: string } | null>(null);
+  const [freePassError, setFreePassError] = useState<string | null>(null);
 
   useEffect(() => {
     const t = setTimeout(() => setDebouncedSearch(search.trim()), 350);
@@ -226,7 +236,40 @@ export default function AdminDashboardPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin-subscriptions'] });
       queryClient.invalidateQueries({ queryKey: ['admin-stats'] });
+      queryClient.invalidateQueries({ queryKey: ['admin-customers'] });
     },
+  });
+
+  const grantFreePassMutation = useMutation({
+    mutationFn: ({ userId, endDate, note }: { userId: string; endDate: string; note?: string }) =>
+      apiRequest(`/api/admin/subscriptions/${userId}/free-pass`, {
+        method: 'POST',
+        body: JSON.stringify({ endDate, note: note || undefined }),
+      }),
+    onSuccess: () => {
+      setGrantTarget(null);
+      setFreePassError(null);
+      queryClient.invalidateQueries({ queryKey: ['admin-subscriptions'] });
+      queryClient.invalidateQueries({ queryKey: ['admin-customers'] });
+      queryClient.invalidateQueries({ queryKey: ['admin-stats'] });
+    },
+    onError: (err: Error) => setFreePassError(err.message),
+  });
+
+  const revokeFreePassMutation = useMutation({
+    mutationFn: ({ userId, note }: { userId: string; note?: string }) =>
+      apiRequest(`/api/admin/subscriptions/${userId}/revoke-free-pass`, {
+        method: 'POST',
+        body: JSON.stringify({ note: note || undefined }),
+      }),
+    onSuccess: () => {
+      setRevokeTarget(null);
+      setFreePassError(null);
+      queryClient.invalidateQueries({ queryKey: ['admin-subscriptions'] });
+      queryClient.invalidateQueries({ queryKey: ['admin-customers'] });
+      queryClient.invalidateQueries({ queryKey: ['admin-stats'] });
+    },
+    onError: (err: Error) => setFreePassError(err.message),
   });
 
   const showGlobalSearch = debouncedSearch.length >= 2;
@@ -234,6 +277,38 @@ export default function AdminDashboardPage() {
   return (
     <div className="space-y-5 sm:space-y-6">
       <AdminEventDetailModal eventId={selectedEventId} onClose={() => setSelectedEventId(null)} />
+      {grantTarget && (
+        <AdminFreePassModal
+          mode="grant"
+          open
+          userEmail={grantTarget.email}
+          loading={grantFreePassMutation.isPending}
+          error={freePassError}
+          onClose={() => {
+            setGrantTarget(null);
+            setFreePassError(null);
+          }}
+          onSubmit={({ endDate, note }) =>
+            grantFreePassMutation.mutate({ userId: grantTarget.userId, endDate, note: note || undefined })
+          }
+        />
+      )}
+      {revokeTarget && (
+        <AdminFreePassModal
+          mode="revoke"
+          open
+          userEmail={revokeTarget.email}
+          loading={revokeFreePassMutation.isPending}
+          error={freePassError}
+          onClose={() => {
+            setRevokeTarget(null);
+            setFreePassError(null);
+          }}
+          onSubmit={({ note }) =>
+            revokeFreePassMutation.mutate({ userId: revokeTarget.userId, note: note || undefined })
+          }
+        />
+      )}
 
       <div className="flex flex-col gap-3 sm:gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div>
@@ -391,8 +466,13 @@ export default function AdminDashboardPage() {
                 <td className="py-3 text-xs text-zinc-400">
                   {u.subscription ? (
                     <>
-                      <Badge variant={u.subscription.status === 'active' || u.subscription.status === 'trialing' ? 'success' : 'default'}>{u.subscription.planId}</Badge>
+                      <Badge variant={u.subscription.status === 'active' || u.subscription.status === 'trialing' ? 'success' : 'default'}>
+                        {formatPlanLabel(u.subscription.planId, u.subscription.freePassActive)}
+                      </Badge>
                       <span className="block mt-1">{u.subscription.status}</span>
+                      {u.subscription.freePassActive && u.subscription.currentPeriodEnd && (
+                        <span className="block mt-1 text-zinc-500">until {formatDate(u.subscription.currentPeriodEnd)}</span>
+                      )}
                     </>
                   ) : '—'}
                 </td>
@@ -403,11 +483,30 @@ export default function AdminDashboardPage() {
                   <Link href={`/profile/${u.profileId}`} className="text-violet-400 hover:text-violet-300 text-xs">Profile</Link>
                 </td>
                 <td className="py-3">
-                  {u.isSuspended ? (
-                    <Button size="sm" variant="secondary" onClick={() => unsuspendMutation.mutate(u._id)}>Unsuspend</Button>
-                  ) : (
-                    <Button size="sm" variant="danger" onClick={() => suspendMutation.mutate(u._id)}>Suspend</Button>
-                  )}
+                  <div className="flex flex-wrap gap-2">
+                    {u.isSuspended ? (
+                      <Button size="sm" variant="secondary" onClick={() => unsuspendMutation.mutate(u._id)}>Unsuspend</Button>
+                    ) : (
+                      <Button size="sm" variant="danger" onClick={() => suspendMutation.mutate(u._id)}>Suspend</Button>
+                    )}
+                    {u.subscription?.freePassActive ? (
+                      <Button
+                        size="sm"
+                        variant="danger"
+                        onClick={() => setRevokeTarget({ userId: u._id, email: u.email })}
+                      >
+                        Revoke pass
+                      </Button>
+                    ) : (
+                      <Button
+                        size="sm"
+                        variant="secondary"
+                        onClick={() => setGrantTarget({ userId: u._id, email: u.email })}
+                      >
+                        Free Pass
+                      </Button>
+                    )}
+                  </div>
                 </td>
               </tr>
             ))}
@@ -474,18 +573,52 @@ export default function AdminDashboardPage() {
       )}
 
       {tab === 'subscriptions' && (
-        <DataTable loading={subsLoading} headers={['User', 'Plan', 'Status', 'Period end', 'Actions']} empty="No subscriptions.">
-          {((Array.isArray(subsData) ? subsData : []) as Array<{ _id?: string; userId?: { _id?: string; email?: string } | string; planId?: string; status?: string; currentPeriodEnd?: string }>).map((s) => {
+        <DataTable loading={subsLoading} headers={['User', 'Plan', 'Status', 'Period end', 'Note', 'Actions']} empty="No subscriptions.">
+          {((Array.isArray(subsData) ? subsData : []) as Array<{
+            _id?: string;
+            userId?: { _id?: string; email?: string } | string;
+            planId?: string;
+            status?: string;
+            currentPeriodEnd?: string;
+            freePassActive?: boolean;
+            adminNote?: string | null;
+          }>).map((s) => {
             const userId = typeof s.userId === 'object' && s.userId !== null && '_id' in s.userId ? s.userId._id : (s.userId as string);
             const email = typeof s.userId === 'object' && s.userId !== null && 'email' in s.userId ? (s.userId as { email?: string }).email : '—';
             return (
               <tr key={s._id || userId} className="border-b border-zinc-800/50">
                 <td className="py-3 text-zinc-300">{email}</td>
-                <td className="py-3"><Badge>{s.planId}</Badge></td>
+                <td className="py-3"><Badge>{formatPlanLabel(s.planId, s.freePassActive)}</Badge></td>
                 <td className="py-3"><Badge variant={s.status === 'active' || s.status === 'trialing' ? 'success' : 'default'}>{s.status}</Badge></td>
                 <td className="py-3 text-zinc-500 text-sm">{formatDate(s.currentPeriodEnd)}</td>
+                <td className="py-3 text-zinc-500 text-xs max-w-[200px] truncate" title={s.adminNote || undefined}>
+                  {s.adminNote || '—'}
+                </td>
                 <td className="py-3">
-                  <Button size="sm" variant="danger" onClick={() => userId && cancelSubMutation.mutate(userId)}>Cancel</Button>
+                  <div className="flex flex-wrap gap-2">
+                    {s.freePassActive ? (
+                      <Button
+                        size="sm"
+                        variant="danger"
+                        onClick={() => userId && email && setRevokeTarget({ userId, email })}
+                      >
+                        Revoke
+                      </Button>
+                    ) : (
+                      <>
+                        <Button
+                          size="sm"
+                          variant="secondary"
+                          onClick={() => userId && email && setGrantTarget({ userId, email })}
+                        >
+                          Free Pass
+                        </Button>
+                        <Button size="sm" variant="danger" onClick={() => userId && cancelSubMutation.mutate(userId)}>
+                          Cancel
+                        </Button>
+                      </>
+                    )}
+                  </div>
                 </td>
               </tr>
             );
