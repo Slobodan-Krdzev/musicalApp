@@ -5,6 +5,7 @@ import dynamic from 'next/dynamic';
 import Image from 'next/image';
 import { useQuery } from '@tanstack/react-query';
 import { PublicNavbar } from '@/components/PublicNavbar';
+import { SiteFooter } from '@/components/Layout/SiteFooter';
 import { SocialLinksChips } from '@/components/SocialLinksChips';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
@@ -360,6 +361,8 @@ export default function PartiesPage() {
           </>
         )}
       </main>
+
+      <SiteFooter />
 
       <PartyDetailModal party={selectedParty} onClose={() => setSelectedParty(null)} />
     </div>

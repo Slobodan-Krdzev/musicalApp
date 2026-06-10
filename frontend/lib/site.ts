@@ -32,6 +32,7 @@ export const publicRoutes: Array<{
 }> = [
   { path: '/', changeFrequency: 'weekly', priority: 1 },
   { path: '/about', changeFrequency: 'monthly', priority: 0.8 },
+  { path: '/legal', changeFrequency: 'monthly', priority: 0.7 },
   { path: '/parties', changeFrequency: 'daily', priority: 0.9 },
   { path: '/login', changeFrequency: 'monthly', priority: 0.5 },
   { path: '/register', changeFrequency: 'monthly', priority: 0.6 },

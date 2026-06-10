@@ -18,12 +18,22 @@ type PublicNavbarProps = {
   brandText?: string;
 };
 
+/** Matches `h-16` on the navbar bar — used for fixed offset (e.g. legal page). */
+export const PUBLIC_NAVBAR_HEIGHT_PX = 64;
+
 export function PublicNavbar({ brandText = BRAND.name }: PublicNavbarProps) {
   const { user, isLoading } = useAuth();
   const [open, setOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => setMounted(true), []);
+
+  useEffect(() => {
+    document.documentElement.style.setProperty('--public-navbar-height', `${PUBLIC_NAVBAR_HEIGHT_PX}px`);
+    return () => {
+      document.documentElement.style.removeProperty('--public-navbar-height');
+    };
+  }, []);
 
   const showDashboard = canAccessDashboard(user);
   const showAuthLinks = mounted && !isLoading && (!user || !showDashboard);
@@ -46,7 +56,7 @@ export function PublicNavbar({ brandText = BRAND.name }: PublicNavbarProps) {
 
   return (
     <>
-      <header className="relative z-10 border-b border-zinc-800/60 bg-zinc-950/50 backdrop-blur">
+      <header className="fixed inset-x-0 top-0 z-50 border-b border-zinc-800/60 bg-zinc-950/90 backdrop-blur-md">
         <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
           <Link
             href="/"
@@ -69,6 +79,9 @@ export function PublicNavbar({ brandText = BRAND.name }: PublicNavbarProps) {
             </Link>
             <Link href="/about" className="text-zinc-400 hover:text-zinc-100">
               About Us
+            </Link>
+            <Link href="/legal" className="text-zinc-400 hover:text-zinc-100">
+              Legal
             </Link>
             {showAuthLinks && (
               <Link href="/login" className="text-zinc-400 hover:text-zinc-100">
@@ -121,6 +134,9 @@ export function PublicNavbar({ brandText = BRAND.name }: PublicNavbarProps) {
         </div>
       </header>
 
+      {/* Reserve space in document flow for the fixed navbar */}
+      <div className="h-16 shrink-0" aria-hidden />
+
       <MobileMenuShell
         open={open}
         onClose={() => setOpen(false)}
@@ -157,6 +173,21 @@ export function PublicNavbar({ brandText = BRAND.name }: PublicNavbarProps) {
             <span>
               <span className="block">About Us</span>
               <span className="block text-xs font-normal text-zinc-500">Our mission & story</span>
+            </span>
+          </Link>
+          <Link
+            href="/legal"
+            onClick={() => setOpen(false)}
+            className={mobileNavLinkClass(false)}
+          >
+            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-sky-500/15 text-sky-300">
+              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5} aria-hidden>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12c0 1.268-.63 2.39-1.593 3.068a3.745 3.745 0 01-1.043 3.296 3.745 3.745 0 01-3.296 1.043A3.745 3.745 0 0112 21c-1.268 0-2.39-.63-3.068-1.593a3.746 3.746 0 01-3.296-1.043 3.745 3.745 0 01-1.043-3.296A3.745 3.745 0 013 12c0-1.268.63-2.39 1.593-3.068a3.745 3.745 0 011.043-3.296 3.746 3.746 0 013.296-1.043A3.746 3.746 0 0112 3c1.268 0 2.39.63 3.068 1.593a3.746 3.746 0 013.296 1.043 3.746 3.746 0 011.043 3.296A3.745 3.745 0 0121 12z" />
+              </svg>
+            </span>
+            <span>
+              <span className="block">Legal</span>
+              <span className="block text-xs font-normal text-zinc-500">Privacy, terms & trust</span>
             </span>
           </Link>
           {showDashboard && user && (

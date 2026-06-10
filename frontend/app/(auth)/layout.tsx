@@ -1,4 +1,5 @@
 import { Header } from '@/components/Layout/Header';
+import { SiteFooter } from '@/components/Layout/SiteFooter';
 import { createPageMetadata } from '@/lib/metadata';
 
 export const metadata = createPageMetadata({
@@ -12,6 +13,7 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
     <div className="flex min-h-screen flex-col">
       <Header />
       <main className="flex flex-1 items-center justify-center px-3 py-8 sm:p-6">{children}</main>
+      <SiteFooter />
     </div>
   );
 }

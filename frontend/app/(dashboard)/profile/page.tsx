@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import Image from 'next/image';
 import dynamic from 'next/dynamic';
 import { useAuth } from '@/hooks/useAuth';
@@ -20,6 +21,7 @@ import {
   VENUE_GIG_TYPES,
   EXPECTATIONS_OPTIONS,
 } from '@/lib/profileOptions';
+import { legalSectionHref } from '@/lib/legal';
 
 const VenueMapPicker = dynamic(() => import('@/components/VenueMapPicker'), { ssr: false });
 
@@ -343,10 +345,18 @@ export default function ProfileWizardPage() {
   const [profile, setProfile] = useState<AnyProfile>({});
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [showLeaveModal, setShowLeaveModal] = useState(false);
+  const [acceptedTerms, setAcceptedTerms] = useState(false);
+  const [isInitialSetup, setIsInitialSetup] = useState(true);
 
   useEffect(() => {
-    if (data?.profile) setProfile(data.profile);
-  }, [data?.profile]);
+    if (data?.profile) {
+      setProfile(data.profile);
+      const hasName = isMusician
+        ? !!(data.profile as MusicianProfile).bandName
+        : !!(data.profile as VenueProfile).venueName;
+      setIsInitialSetup(!hasName);
+    }
+  }, [data?.profile, isMusician]);
 
   // Leave-page guard
   useEffect(() => {
@@ -510,6 +520,10 @@ export default function ProfileWizardPage() {
 
   function handleSave() {
     if (!validateStep()) return;
+    if (isInitialSetup && !acceptedTerms) {
+      setErrors((prev) => ({ ...prev, terms: 'You must agree to the Terms of Use to continue.' }));
+      return;
+    }
     updateMutation.mutate(buildPayload());
   }
 
@@ -907,20 +921,58 @@ export default function ProfileWizardPage() {
           )}
         </CardContent>
 
-        <CardFooter className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <div className="order-2 w-full sm:order-1 sm:w-auto">
-            {stepIndex > 0 && (
-              <Button variant="ghost" size="sm" onClick={goBack} className="w-full sm:w-auto">
-                Previous
-              </Button>
-            )}
-          </div>
-          {updateMutation.error && (
-            <p className="order-1 text-sm text-red-400 sm:order-2 sm:flex-1 sm:text-right">
-              {(updateMutation.error as Error).message}
-            </p>
+        <CardFooter className="flex flex-col gap-3">
+          {stepIndex === steps.length - 1 && isInitialSetup && (
+            <div className="w-full rounded-xl border border-zinc-800 bg-zinc-900/40 px-3 py-3 sm:px-4">
+              <label className="flex cursor-pointer items-start gap-2.5 sm:gap-3">
+                <input
+                  type="checkbox"
+                  checked={acceptedTerms}
+                  onChange={(e) => {
+                    setAcceptedTerms(e.target.checked);
+                    if (e.target.checked) {
+                      setErrors((prev) => {
+                        const next = { ...prev };
+                        delete next.terms;
+                        return next;
+                      });
+                    }
+                  }}
+                  className="mt-1 h-4 w-4 shrink-0 rounded border-zinc-600 bg-zinc-900 text-violet-500 focus:ring-violet-500"
+                />
+                <span className="min-w-0 text-xs leading-relaxed text-zinc-300 sm:text-sm">
+                  I agree to the{' '}
+                  <Link href={legalSectionHref('terms')} target="_blank" className="text-violet-400 hover:underline">
+                    Terms of Use
+                  </Link>{' '}
+                  and{' '}
+                  <Link href={legalSectionHref('privacy')} target="_blank" className="text-violet-400 hover:underline">
+                    Privacy Policy
+                  </Link>
+                  . I understand my data is used to connect musicians and venues, and contact details are shared only after both
+                  parties finalize a deal.{' '}
+                  <Link href="/legal" target="_blank" className="text-zinc-500 hover:text-zinc-300">
+                    Read all legal information →
+                  </Link>
+                </span>
+              </label>
+              {errors.terms && <p className="mt-2 text-sm text-red-400">{errors.terms}</p>}
+            </div>
           )}
-          <div className="order-3 flex w-full gap-2 sm:order-3 sm:w-auto">
+          <div className="flex w-full flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+            <div className="w-full sm:w-auto">
+              {stepIndex > 0 && (
+                <Button variant="ghost" size="sm" onClick={goBack} className="w-full sm:w-auto">
+                  Previous
+                </Button>
+              )}
+            </div>
+            {updateMutation.error && (
+              <p className="text-center text-sm text-red-400 sm:flex-1 sm:text-right">
+                {(updateMutation.error as Error).message}
+              </p>
+            )}
+            <div className="flex w-full gap-2 sm:w-auto">
             {stepIndex < steps.length - 1 && (
               <Button size="sm" onClick={goNext} className="w-full sm:w-auto">
                 Next
@@ -931,6 +983,7 @@ export default function ProfileWizardPage() {
                 Save & Verify Email
               </Button>
             )}
+            </div>
           </div>
         </CardFooter>
       </Card>

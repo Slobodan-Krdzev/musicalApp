@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { UnderDevelopmentModal } from '@/components/UnderDevelopmentModal';
 import { PublicNavbar } from '@/components/PublicNavbar';
+import { SiteFooter } from '@/components/Layout/SiteFooter';
 import { NewsletterSection } from '@/components/home/NewsletterSection';
 import { cn } from '@/lib/cn';
 import { createPageMetadata } from '@/lib/metadata';
@@ -239,10 +240,7 @@ export default function LandingPage() {
           </div>
         </section>
 
-        {/* Footer */}
-        <footer className="py-8 px-4 border-t border-zinc-800 text-center text-zinc-500 text-sm">
-          <p>GigConnection – Connect Musicians & Venues. Built for live music.</p>
-        </footer>
+        <SiteFooter />
       </main>
     </div>
   );

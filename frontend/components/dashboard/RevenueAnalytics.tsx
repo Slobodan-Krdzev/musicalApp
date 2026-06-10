@@ -85,7 +85,7 @@ function buildChartLayout(
   }
 
   const eventPoints: ChartPoint[] = [];
-  for (const group of dayGroups.values()) {
+  Array.from(dayGroups.values()).forEach((group) => {
     group.forEach((item, index) => {
       const t = getItemTimestamp(item);
       const spreadMs = group.length > 1 ? (index - (group.length - 1) / 2) * 86400000 * 0.4 : 0;
@@ -95,7 +95,7 @@ function buildChartLayout(
       const yPct = (y / height) * 100;
       eventPoints.push({ item, xPct, yPct });
     });
-  }
+  });
 
   eventPoints.sort((a, b) => getItemTimestamp(a.item) - getItemTimestamp(b.item));
 
@@ -113,7 +113,7 @@ function ChartTooltip({
   x: number;
   y: number;
   pinned?: boolean;
-  tooltipRef?: React.RefObject<HTMLDivElement | null>;
+  tooltipRef?: React.RefObject<HTMLDivElement>;
 }) {
   return (
     <div

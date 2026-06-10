@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { PublicNavbar } from '@/components/PublicNavbar';
+import { SiteFooter } from '@/components/Layout/SiteFooter';
 import { createPageMetadata } from '@/lib/metadata';
 
 export const metadata = createPageMetadata({
@@ -11,10 +12,10 @@ export const metadata = createPageMetadata({
 
 export default function AboutPage() {
   return (
-    <div className="min-h-screen bg-zinc-950 text-zinc-100">
+    <div className="flex min-h-screen flex-col bg-zinc-950 text-zinc-100">
       <PublicNavbar />
 
-      <main className="relative overflow-hidden">
+      <main className="relative flex-1 overflow-hidden">
         <div
           className="pointer-events-none absolute inset-0"
           style={{
@@ -237,6 +238,7 @@ export default function AboutPage() {
           </div>
         </div>
       </main>
+      <SiteFooter />
     </div>
   );
 }

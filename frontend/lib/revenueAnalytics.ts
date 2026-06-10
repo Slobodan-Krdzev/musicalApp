@@ -72,7 +72,7 @@ export function buildMonthlySeries(items: RevenueItem[]): MonthlyPoint[] {
     const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
     buckets.set(key, (buckets.get(key) || 0) + item.amount);
   }
-  return [...buckets.entries()]
+  return Array.from(buckets.entries())
     .sort(([a], [b]) => a.localeCompare(b))
     .map(([key, value]) => {
       const [y, m] = key.split('-');
@@ -92,7 +92,7 @@ export function buildPartnerBreakdown(items: RevenueItem[], limit = 5): PartnerR
     const cur = map.get(item.partnerName) || { value: 0, gigs: 0 };
     map.set(item.partnerName, { value: cur.value + item.amount, gigs: cur.gigs + 1 });
   }
-  return [...map.entries()]
+  return Array.from(map.entries())
     .map(([name, data]) => ({ name, ...data }))
     .sort((a, b) => b.value - a.value)
     .slice(0, limit);
