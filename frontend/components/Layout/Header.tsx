@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { cn } from '@/lib/cn';
@@ -15,6 +15,7 @@ type NavItem = { href: string; label: string; show: boolean };
 
 export function Header() {
   const pathname = usePathname();
+  const router = useRouter();
   const { user, isLoading, logout } = useAuth();
   const [open, setOpen] = useState(false);
 
@@ -39,6 +40,15 @@ export function Header() {
   });
 
   const unreadCount = notifsData?.unreadCount ?? 0;
+
+  function openNotifications(e: React.MouseEvent) {
+    if (isSuperAdmin) return;
+    if (pathname === '/dashboard') {
+      e.preventDefault();
+      router.replace('/dashboard?tab=notifications', { scroll: false });
+      window.dispatchEvent(new CustomEvent('gigconnection-dashboard-tab', { detail: 'notifications' }));
+    }
+  }
 
   useEffect(() => {
     function onKeyDown(e: KeyboardEvent) {
@@ -115,7 +125,12 @@ export function Header() {
             ))}
 
             {!isLoading && showNotifications && (
-              <Link href={notificationsHref} className="relative -mx-1 px-1" aria-label="Notifications">
+              <Link
+                href={notificationsHref}
+                onClick={openNotifications}
+                className="relative -mx-1 px-1"
+                aria-label="Notifications"
+              >
                 <svg
                   className="h-5 w-5 text-zinc-400 transition-colors hover:text-zinc-100"
                   fill="none"
@@ -169,6 +184,7 @@ export function Header() {
             {!isLoading && showNotifications && (
               <Link
                 href={notificationsHref}
+                onClick={openNotifications}
                 className="relative inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-zinc-800 bg-zinc-950/80 text-zinc-200 transition-colors hover:bg-zinc-900"
                 aria-label="Notifications"
               >

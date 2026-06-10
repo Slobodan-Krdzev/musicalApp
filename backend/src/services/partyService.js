@@ -34,11 +34,21 @@ function matchesTimeRange(date, timeFrom, timeTo) {
   return true;
 }
 
-function collectTags(entity, musicianProfile, venueProfile) {
+function collectEntityTags(entity) {
   return [
     ...(entity?.lookingFor || []),
     ...(entity?.genres || []),
     ...(entity?.interests || []),
+  ]
+    .filter(Boolean)
+    .map((t) => String(t).trim())
+    .filter(Boolean);
+}
+
+/** Display/search tags (includes profiles); exclusion uses entityTags only. */
+function collectTags(entity, musicianProfile, venueProfile) {
+  return [
+    ...collectEntityTags(entity),
     ...(musicianProfile?.genres || []),
     ...(musicianProfile?.interests || []),
     ...(musicianProfile?.services || []),
@@ -115,6 +125,7 @@ export async function listPublicParties(query = {}) {
     const musicianProfile = musicianMap[deal.musicianId.toString()] || null;
     const venueProfile = venueMap[deal.venueId.toString()] || null;
     const tagList = collectTags(entity, musicianProfile, venueProfile);
+    const entityTags = collectEntityTags(entity);
     const loc = venueProfile?.location;
     const latitude = loc?.latitude;
     const longitude = loc?.longitude;
@@ -132,6 +143,7 @@ export async function listPublicParties(query = {}) {
       description: entity.description || '',
       date: entity.date,
       tags: tagList,
+      entityTags,
       venueName: venueProfile?.venueName || 'Venue',
       musicianName: musicianProfile?.bandName || 'Musician',
       venueProfile: venueProfile

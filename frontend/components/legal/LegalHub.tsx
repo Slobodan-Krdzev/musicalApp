@@ -407,7 +407,7 @@ export function LegalHub() {
             <ul>
               <li>Only upcoming public parties are shown on the parties page and in digests.</li>
               <li>
-                <strong className="text-zinc-100">Weddings and private events are never listed</strong> on the parties page or
+                <strong className="text-zinc-100">Events tagged as weddings or private are never listed</strong> on the parties page or
                 included in newsletter emails, regardless of your preferences.
               </li>
             </ul>

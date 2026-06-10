@@ -1,10 +1,18 @@
-/** Tags that must never appear on the public parties page or in newsletter digests. */
-export function isExcludedPublicParty(party) {
-  const tags = [...(party.tags || [])];
-  if (party.musicianProfile?.genres) tags.push(...party.musicianProfile.genres);
+const EXCLUDED_KEYWORDS = ['wedding', 'private'];
 
-  const normalized = tags.map((t) => String(t || '').trim().toLowerCase()).filter(Boolean);
-  if (normalized.some((t) => t.includes('wedding'))) return true;
-  if (normalized.some((t) => t.includes('private'))) return true;
-  return false;
+function hasExcludedKeyword(texts) {
+  const normalized = texts
+    .map((t) => String(t || '').trim().toLowerCase())
+    .filter(Boolean);
+  return normalized.some((t) => EXCLUDED_KEYWORDS.some((kw) => t.includes(kw)));
+}
+
+/**
+ * Exclude wedding/private gigs from the public parties page and newsletter digests.
+ * Only event/offering fields count — not venue gig types or musician services/genres
+ * (e.g. a band that plays weddings can still appear on a public rock gig).
+ */
+export function isExcludedPublicParty(party) {
+  const entityTags = party.entityTags ?? [];
+  return hasExcludedKeyword([...entityTags, party.title, party.description]);
 }

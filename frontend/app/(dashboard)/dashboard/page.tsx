@@ -1,8 +1,8 @@
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import Image from 'next/image';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/hooks/useAuth';
 import { apiRequest } from '@/lib/api';
@@ -145,6 +145,17 @@ type AnyProfile = MusicianProfile | VenueProfile;
 
 type SidebarTab = 'summary' | 'notifications' | 'events' | 'profile' | 'media' | 'links' | 'subscription';
 
+function tabFromSearchParam(tabParam: string | null, showSummary: boolean): SidebarTab | null {
+  if (tabParam === 'notifications') return 'notifications';
+  if (tabParam === 'subscription') return 'subscription';
+  if (tabParam === 'events') return 'events';
+  if (tabParam === 'profile') return 'profile';
+  if (tabParam === 'media') return 'media';
+  if (tabParam === 'links') return 'links';
+  if (tabParam === 'summary' && showSummary) return 'summary';
+  return null;
+}
+
 type DashboardSummary = {
   listingsCreated: number;
   listingsLabel: string;
@@ -276,6 +287,8 @@ const SIDEBAR_ICONS: Record<SidebarTab, (props: { className?: string }) => JSX.E
 // ── Main Dashboard ──
 
 export default function DashboardPage() {
+  const searchParams = useSearchParams();
+  const router = useRouter();
   const { user, logout } = useAuth();
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState<SidebarTab>('summary');
@@ -410,36 +423,51 @@ export default function DashboardPage() {
 
   const [checkoutNotice, setCheckoutNotice] = useState<'success' | 'cancelled' | null>(null);
 
-  const urlSearch = typeof window !== 'undefined' ? window.location.search : '';
+  const tabParam = searchParams.get('tab');
+  const subscriptionParam = searchParams.get('subscription');
 
-  // Handle returns from Stripe Checkout / billing portal and deep links (e.g. ?tab=notifications).
-  // urlSearch in deps so in-app navigation to /dashboard?tab=… updates the active sidebar tab.
-  useEffect(() => {
-    if (typeof window === 'undefined') return;
-    const params = new URLSearchParams(window.location.search);
-    const subParam = params.get('subscription');
-    const tabParam = params.get('tab');
-
-    if (tabParam === 'subscription') setActiveTab('subscription');
-    if (tabParam === 'summary' && showSummaryTab) setActiveTab('summary');
-    if (tabParam === 'notifications') setActiveTab('notifications');
-
-    if (subParam === 'success' || subParam === 'cancelled') {
-      setActiveTab('subscription');
-      setCheckoutNotice(subParam);
-      // Stripe confirms via webhook; refetch so the UI reflects the new status once synced.
-      queryClient.invalidateQueries({ queryKey: ['subscription'] });
+  const selectTab = useCallback(
+    (key: SidebarTab) => {
+      setActiveTab(key);
+      const params = new URLSearchParams(searchParams.toString());
+      params.set('tab', key);
       params.delete('subscription');
-      const qs = params.toString();
-      window.history.replaceState(null, '', `${window.location.pathname}${qs ? `?${qs}` : ''}`);
+      router.replace(`/dashboard?${params.toString()}`, { scroll: false });
+    },
+    [router, searchParams]
+  );
+
+  // Header bell can dispatch this when already on /dashboard?tab=notifications (same URL, different sidebar tab).
+  useEffect(() => {
+    function onTabRequest(e: Event) {
+      const key = (e as CustomEvent<SidebarTab>).detail;
+      if (key) selectTab(key);
     }
-  }, [urlSearch, queryClient, showSummaryTab]);
+    window.addEventListener('gigconnection-dashboard-tab', onTabRequest);
+    return () => window.removeEventListener('gigconnection-dashboard-tab', onTabRequest);
+  }, [selectTab]);
+
+  // Deep links (?tab=notifications from header bell, etc.) and Stripe return params.
+  useEffect(() => {
+    const fromTab = tabFromSearchParam(tabParam, showSummaryTab);
+    if (fromTab) setActiveTab(fromTab);
+
+    if (subscriptionParam === 'success' || subscriptionParam === 'cancelled') {
+      setActiveTab('subscription');
+      setCheckoutNotice(subscriptionParam);
+      queryClient.invalidateQueries({ queryKey: ['subscription'] });
+      const params = new URLSearchParams(searchParams.toString());
+      params.delete('subscription');
+      params.set('tab', 'subscription');
+      router.replace(`/dashboard?${params.toString()}`, { scroll: false });
+    }
+  }, [tabParam, subscriptionParam, showSummaryTab, queryClient, router, searchParams]);
 
   useEffect(() => {
     if (user && !showSummaryTab && activeTab === 'summary') {
-      setActiveTab('notifications');
+      selectTab('notifications');
     }
-  }, [user, showSummaryTab, activeTab]);
+  }, [user, showSummaryTab, activeTab, selectTab]);
 
   return (
     <div className="space-y-6 animate-in fade-in duration-300">
@@ -534,7 +562,7 @@ export default function DashboardPage() {
               <li key={key}>
                 <button
                   type="button"
-                  onClick={() => setActiveTab(key)}
+                  onClick={() => selectTab(key)}
                   className={`inline-flex items-center gap-2 rounded-full border px-4 py-2 text-sm font-medium transition-colors ${
                     isActive
                       ? 'border-violet-500/40 bg-violet-500/15 text-violet-300'
@@ -569,7 +597,7 @@ export default function DashboardPage() {
                     <li key={key}>
                       <button
                         type="button"
-                        onClick={() => setActiveTab(key)}
+                        onClick={() => selectTab(key)}
                         className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 ${
                           isActive
                             ? 'bg-violet-500/15 text-violet-400 shadow-sm'
