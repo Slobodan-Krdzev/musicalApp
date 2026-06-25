@@ -2,7 +2,6 @@
 
 import {
   useEffect,
-  useRef,
   useState,
   type CSSProperties,
   type ElementType,
@@ -57,7 +56,6 @@ export function CursorGlow<T extends ElementType = 'div'>({
   glowRadius = 380,
 }: CursorGlowProps<T>) {
   const Tag = as || 'div';
-  const ref = useRef<HTMLElement>(null);
   const [active, setActive] = useState(false);
   const [position, setPosition] = useState({ x: 50, y: 50 });
   const [reducedMotion, setReducedMotion] = useState(false);
@@ -70,11 +68,9 @@ export function CursorGlow<T extends ElementType = 'div'>({
     return () => media.removeEventListener('change', update);
   }, []);
 
-  function handleMove(e: MouseEvent) {
+  function handleMove(e: MouseEvent<HTMLElement>) {
     if (reducedMotion) return;
-    const el = ref.current;
-    if (!el) return;
-    const rect = el.getBoundingClientRect();
+    const rect = e.currentTarget.getBoundingClientRect();
     if (!rect.width || !rect.height) return;
     setPosition({
       x: ((e.clientX - rect.left) / rect.width) * 100,
@@ -93,7 +89,6 @@ export function CursorGlow<T extends ElementType = 'div'>({
 
   return (
     <Tag
-      ref={ref}
       className={cn(
         'group/glow relative transition-[border-color,box-shadow] duration-300',
         !subtle && 'border',
