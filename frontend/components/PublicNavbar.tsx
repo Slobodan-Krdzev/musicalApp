@@ -7,6 +7,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { canAccessDashboard } from '@/lib/auth';
 import { BRAND, BrandMark } from '@/components/Layout/BrandMark';
 import { MobileMenuShell, mobileNavLinkClass } from '@/components/Layout/MobileMenuShell';
+import { CursorGlow } from '@/components/about/CursorGlow';
 
 const primaryNavLinkClassName = cn(
   'inline-flex shrink-0 items-center justify-center rounded-lg px-3 py-1.5 text-sm font-medium transition-colors',
@@ -56,7 +57,14 @@ export function PublicNavbar({ brandText = BRAND.name }: PublicNavbarProps) {
 
   return (
     <>
-      <header className="fixed inset-x-0 top-0 z-50 border-b border-zinc-800/60 bg-zinc-950/90 backdrop-blur-md">
+      <CursorGlow
+        as="header"
+        subtle
+        glow="violet"
+        glowRadius={520}
+        clipGlow={false}
+        className="fixed inset-x-0 top-0 z-50 border-b border-zinc-800/40 bg-zinc-950/45 backdrop-blur-xl"
+      >
         <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
           <Link
             href="/"
@@ -129,7 +137,7 @@ export function PublicNavbar({ brandText = BRAND.name }: PublicNavbarProps) {
             </button>
           </div>
         </div>
-      </header>
+      </CursorGlow>
 
       {/* Reserve space in document flow for the fixed navbar */}
       <div className="h-16 shrink-0" aria-hidden />

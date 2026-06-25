@@ -51,3 +51,20 @@ export function getPostAuthPath(user: User): string {
   }
   return '/dashboard';
 }
+
+/** After login, honor a safe redirect (e.g. /support) when the user may access it. */
+export function resolvePostLoginPath(user: User, redirect?: string | null): string {
+  if (!redirect || !redirect.startsWith('/') || redirect.startsWith('//')) {
+    return getPostAuthPath(user);
+  }
+
+  const path = redirect.split('?')[0] || redirect;
+
+  if (path === '/support' || path.startsWith('/support/')) {
+    if (user.role === 'SUPERADMIN' || user.role === 'MUSICIAN' || user.role === 'VENUE') {
+      return path;
+    }
+  }
+
+  return getPostAuthPath(user);
+}

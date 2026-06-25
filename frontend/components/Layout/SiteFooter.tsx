@@ -7,7 +7,6 @@ const exploreLinks = [
   { href: '/parties', label: 'Parties' },
   { href: '/about', label: 'About Us' },
   { href: '/events', label: 'Events' },
-  { href: '/support', label: 'Support' },
 ];
 
 const accountLinks = [

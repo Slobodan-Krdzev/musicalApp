@@ -46,12 +46,38 @@ body {
     --tw-enter-translate-x: 0.5rem;
   }
 
+  .slide-in-from-bottom-3 {
+    --tw-enter-translate-y: 0.75rem;
+  }
+
+  .slide-in-from-bottom-4 {
+    --tw-enter-translate-y: 1rem;
+  }
+
+  .slide-in-from-bottom-6 {
+    --tw-enter-translate-y: 1.5rem;
+  }
+
   .duration-200 {
     animation-duration: 0.2s;
   }
 
   .duration-300 {
     animation-duration: 0.3s;
+  }
+
+  .duration-500 {
+    animation-duration: 0.5s;
+  }
+
+  .duration-700 {
+    animation-duration: 0.7s;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-in {
+    animation: none !important;
   }
 }
 
@@ -84,4 +110,74 @@ body {
 
 .status-dot-shine {
   animation: status-dot-shine 2s ease-in-out infinite;
+}
+
+.phone-input-field {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  width: 100%;
+  padding: 0.5rem 0.75rem;
+  border-radius: 0.5rem;
+  border: 1px solid rgb(63 63 70);
+  background: rgb(24 24 27);
+}
+
+.phone-input-field:focus-within {
+  outline: none;
+  border-color: rgb(139 92 246);
+  box-shadow: 0 0 0 2px rgb(139 92 246 / 0.35);
+}
+
+.phone-input-field--error {
+  border-color: rgb(239 68 68);
+}
+
+.phone-input-field--error:focus-within {
+  border-color: rgb(239 68 68);
+  box-shadow: 0 0 0 2px rgb(239 68 68 / 0.35);
+}
+
+.phone-input-field .PhoneInputCountry {
+  margin-right: 0.25rem;
+}
+
+.phone-input-field .PhoneInputCountrySelect {
+  color: rgb(244 244 245);
+  background: rgb(24 24 27);
+  border: none;
+}
+
+.phone-input-field .PhoneInputCountrySelect:focus {
+  outline: none;
+}
+
+.phone-input-field .PhoneInputCountryIcon {
+  width: 1.5rem;
+  height: 1rem;
+  border-radius: 0.125rem;
+  overflow: hidden;
+  box-shadow: none;
+}
+
+.phone-input-field .PhoneInputCountryIcon--border {
+  box-shadow: inset 0 0 0 1px rgb(63 63 70);
+}
+
+.phone-input-field .PhoneInputInput {
+  flex: 1;
+  min-width: 0;
+  border: none;
+  background: transparent;
+  color: rgb(244 244 245);
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+}
+
+.phone-input-field .PhoneInputInput::placeholder {
+  color: rgb(113 113 122);
+}
+
+.phone-input-field .PhoneInputInput:focus {
+  outline: none;
 }

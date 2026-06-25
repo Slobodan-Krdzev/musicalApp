@@ -1,3 +1,4 @@
+import Image from 'next/image';
 import { cn } from '@/lib/cn';
 
 export const BRAND = {
@@ -6,7 +7,25 @@ export const BRAND = {
   subtitle: 'Book gigs. Fill venues. Zero hassle.',
 } as const;
 
+export const BRAND_LOGO_SRC = '/gig.png';
+
 export function BrandMark({ className }: { className?: string }) {
+  return (
+    <div className={cn('relative shrink-0', className ?? 'h-9 w-9')}>
+      <Image
+        src={BRAND_LOGO_SRC}
+        alt=""
+        fill
+        className="object-contain"
+        sizes="(max-width: 640px) 36px, 56px"
+        priority
+      />
+    </div>
+  );
+}
+
+/** Original vector brand mark — kept in the project for reference or future reuse. */
+export function BrandMarkSvg({ className }: { className?: string }) {
   return (
     <div
       className={cn('flex shrink-0 items-center justify-center', className ?? 'h-9 w-9')}

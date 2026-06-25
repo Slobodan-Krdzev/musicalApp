@@ -7,6 +7,7 @@ import { siteConfig } from '@/lib/site';
 import { LEGAL_SECTIONS, legalSectionHref } from '@/lib/legal';
 import { SUBSCRIPTION_PLANS, FREE_TRIAL_DAYS } from '@/lib/subscription';
 import { PUBLIC_NAVBAR_HEIGHT_PX } from '@/components/PublicNavbar';
+import { useAuth } from '@/hooks/useAuth';
 
 function Section({
   id,
@@ -74,6 +75,9 @@ function LegalHero({ compact = false }: { compact?: boolean }) {
 }
 
 export function LegalHub() {
+  const { user } = useAuth();
+  const supportHref = user ? '/support' : '/login?redirect=%2Fsupport';
+  const supportLabel = user ? 'Open support →' : 'Log in for support →';
   const [activeId, setActiveId] = useState<string>(LEGAL_SECTIONS[0].id);
   const mobileHeaderRef = useRef<HTMLDivElement>(null);
   const [mobileHeaderHeight, setMobileHeaderHeight] = useState(0);
@@ -552,8 +556,8 @@ export function LegalHub() {
               {siteConfig.contactEmail}
             </a>
             <p className="mt-4">
-              <Link href="/support" className="text-sm text-zinc-500 hover:text-zinc-300">
-                Open support →
+              <Link href={supportHref} className="text-sm text-zinc-500 hover:text-zinc-300">
+                {supportLabel}
               </Link>
             </p>
           </div>

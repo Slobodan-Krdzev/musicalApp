@@ -3,6 +3,7 @@ import { UnderDevelopmentModal } from '@/components/UnderDevelopmentModal';
 import { PublicNavbar } from '@/components/PublicNavbar';
 import { SiteFooter } from '@/components/Layout/SiteFooter';
 import { NewsletterSection } from '@/components/home/NewsletterSection';
+import { CursorGlow } from '@/components/about/CursorGlow';
 import { cn } from '@/lib/cn';
 import { createPageMetadata } from '@/lib/metadata';
 
@@ -94,7 +95,7 @@ export default function LandingPage() {
         <section className="bg-black px-4 py-16 sm:py-20">
           <div className="mx-auto max-w-6xl">
             <div className="grid gap-6 md:grid-cols-3">
-              <div className="rounded-2xl border border-zinc-800/80 bg-black p-6 text-left transition-colors hover:border-violet-500/50">
+              <CursorGlow glow="violet" className="rounded-2xl border-zinc-800/80 bg-black p-6 text-left">
                 <div className="mb-4 inline-flex h-11 w-11 items-center justify-center rounded-xl bg-violet-500/20 text-violet-400">
                   <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5} aria-hidden>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 21v-7.5a.75.75 0 01.75-.75h3a.75.75 0 01.75.75V21m-4.5 0H2.36m11.14 0H18m0 0h3.64m-1.39 0V9.349m-16.5 11.65V9.35m0 0a3.001 3.001 0 003.75-.615A2.993 2.993 0 009.75 9.75c.896 0 1.7-.393 2.25-1.016a2.993 2.993 0 002.25 1.016c.896 0 1.7-.393 2.25-1.016a3.001 3.001 0 003.75.614m-16.5 0a3.004 3.004 0 01-.621-4.72L4.318 3.44A1.5 1.5 0 015.378 3h13.243a1.5 1.5 0 011.06.44l1.19 1.189a3 3 0 01-.621 4.72m-13.5 8.65h3.75a.75.75 0 00.75-.75V13.5a.75.75 0 00-.75-.75H6.75a.75.75 0 00-.75.75v3.75c0 .415.336.75.75.75z" />
@@ -104,8 +105,8 @@ export default function LandingPage() {
                 <p className="mt-2 text-sm leading-relaxed text-zinc-400">
                   Manage your entertainment calendar effortlessly. Find bands that match your vibe and budget.
                 </p>
-              </div>
-              <div className="rounded-2xl border border-zinc-800/80 bg-black p-6 text-left transition-colors hover:border-violet-500/50">
+              </CursorGlow>
+              <CursorGlow glow="indigo" className="rounded-2xl border-zinc-800/80 bg-black p-6 text-left">
                 <div className="mb-4 inline-flex h-11 w-11 items-center justify-center rounded-xl bg-violet-500/20 text-violet-400">
                   <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5} aria-hidden>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M9 9l10.5-3m0 6.553v3.75a2.25 2.25 0 01-1.632 2.163l-1.32.377a1.803 1.803 0 11-.99-3.467l2.31-.66a2.25 2.25 0 001.632-2.163zm0 0V2.25L9 5.25v10.303m0 0v3.75a2.25 2.25 0 01-1.632 2.163l-1.32.377a1.803 1.803 0 01-.99-3.467l2.31-.66A2.25 2.25 0 009 15.553z" />
@@ -115,8 +116,8 @@ export default function LandingPage() {
                 <p className="mt-2 text-sm leading-relaxed text-zinc-400">
                   Stop cold-calling. Browse available slots at top venues and book gigs instantly.
                 </p>
-              </div>
-              <div className="rounded-2xl border border-zinc-800/80 bg-black p-6 text-left transition-colors hover:border-violet-500/50">
+              </CursorGlow>
+              <CursorGlow glow="fuchsia" className="rounded-2xl border-zinc-800/80 bg-black p-6 text-left">
                 <div className="mb-4 inline-flex h-11 w-11 items-center justify-center rounded-xl bg-violet-500/20 text-violet-400">
                   <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5} aria-hidden>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5m-9-6v.008M12 15v.008M12 12v.008M9 15v.008M9 12v.008M15 12v.008" />
@@ -126,7 +127,7 @@ export default function LandingPage() {
                 <p className="mt-2 text-sm leading-relaxed text-zinc-400">
                   Automated contracts, scheduling, and payments. Focus on the music, not the paperwork.
                 </p>
-              </div>
+              </CursorGlow>
             </div>
           </div>
         </section>
@@ -144,8 +145,7 @@ export default function LandingPage() {
             <h2 className="text-center text-3xl font-bold text-white sm:text-4xl lg:text-5xl">Simple, Transparent Pricing</h2>
             <p className="mt-3 text-center text-base text-zinc-400 sm:text-lg">Unlock full access to the platform</p>
             <div className="mt-10 grid w-full gap-6 sm:mt-14 sm:gap-8 md:grid-cols-2">
-              {/* Monthly */}
-              <div className="relative rounded-2xl border border-zinc-800 bg-black/60 p-6 sm:p-8">
+              <CursorGlow glow="indigo" className="rounded-2xl border-zinc-800/80 bg-black/60 p-6 sm:p-8">
                 <h3 className="text-xl font-bold text-white">Monthly</h3>
                 <p className="mt-3 flex items-baseline gap-1.5">
                   <span className="text-4xl font-bold text-white sm:text-5xl">$9.99</span>
@@ -172,9 +172,8 @@ export default function LandingPage() {
                 >
                   Choose Monthly
                 </Link>
-              </div>
-              {/* Yearly - Best value */}
-              <div className="relative rounded-2xl border border-violet-500/40 bg-black/60 p-6 sm:p-8">
+              </CursorGlow>
+              <CursorGlow glow="violet" clipGlow={false} className="rounded-2xl border-violet-500/40 bg-black/60 p-6 sm:p-8">
                 <span className="absolute -top-3 right-4 rounded-full bg-violet-500 px-3 py-1.5 text-sm font-semibold uppercase tracking-wide text-white">
                   Best value
                 </span>
@@ -204,7 +203,7 @@ export default function LandingPage() {
                 >
                   Choose Yearly
                 </Link>
-              </div>
+              </CursorGlow>
             </div>
           </div>
         </section>

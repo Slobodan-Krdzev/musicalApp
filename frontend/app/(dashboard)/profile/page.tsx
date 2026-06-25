@@ -11,6 +11,7 @@ import { apiRequest } from '@/lib/api';
 import { Card, CardHeader, CardContent, CardFooter } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
+import { PhoneInputField, isValidContactPhone } from '@/components/ui/PhoneInput';
 import { Badge } from '@/components/ui/Badge';
 import { Modal } from '@/components/ui/Modal';
 import { COUNTRIES } from '@/lib/countries';
@@ -445,14 +446,21 @@ export default function ProfileWizardPage() {
     }
 
     if (currentStep === 'Contact') {
-      if (isMusician && !(profile as MusicianProfile).contactPhone?.trim()) {
+      const contactPhone = isMusician
+        ? (profile as MusicianProfile).contactPhone
+        : (profile as VenueProfile).contactPhone;
+      if (!contactPhone?.trim()) {
         newErrors.contactPhone = 'Phone number is required';
+      } else if (!isValidContactPhone(contactPhone)) {
+        newErrors.contactPhone = 'Enter a valid phone number with country code';
       }
-      if (isVenue && !(profile as VenueProfile).contactPhone?.trim()) {
-        newErrors.contactPhone = 'Phone number is required';
-      }
-      if (isVenue && !(profile as VenueProfile).reservationPhone?.trim()) {
-        newErrors.reservationPhone = 'Reservations phone is required';
+      if (isVenue) {
+        const reservationPhone = (profile as VenueProfile).reservationPhone;
+        if (!reservationPhone?.trim()) {
+          newErrors.reservationPhone = 'Reservations phone is required';
+        } else if (!isValidContactPhone(reservationPhone)) {
+          newErrors.reservationPhone = 'Enter a valid reservations phone with country code';
+        }
       }
     }
 
@@ -873,22 +881,24 @@ export default function ProfileWizardPage() {
           {/* ── Step: Contact ── */}
           {!isLoading && currentStep === 'Contact' && (
             <>
-              <Input
+              <PhoneInputField
+                id="profile-contact-phone"
                 label={isVenue ? 'Contact Phone *' : 'Phone Number *'}
                 value={
                   isMusician
                     ? (profile as MusicianProfile).contactPhone || ''
                     : (profile as VenueProfile).contactPhone || ''
                 }
-                onChange={(e) => handleChange('contactPhone', e.target.value)}
+                onChange={(value) => handleChange('contactPhone', value)}
                 error={errors.contactPhone}
-                placeholder="+1 234 567 890"
+                placeholder="Enter phone number"
               />
               {isVenue && (
-                <Input
+                <PhoneInputField
+                  id="profile-reservation-phone"
                   label="Reservations Phone *"
                   value={(profile as VenueProfile).reservationPhone || ''}
-                  onChange={(e) => handleChange('reservationPhone', e.target.value)}
+                  onChange={(value) => handleChange('reservationPhone', value)}
                   error={errors.reservationPhone}
                   placeholder="Public number for party bookings"
                 />
@@ -911,12 +921,14 @@ export default function ProfileWizardPage() {
                 onChange={(e) => handleSocialChange('youtube', e.target.value)}
                 placeholder="https://youtube.com/@yourchannel"
               />
-              <Input
-                label="Spotify"
-                value={profile.socialLinks?.spotify || ''}
-                onChange={(e) => handleSocialChange('spotify', e.target.value)}
-                placeholder="https://open.spotify.com/artist/..."
-              />
+              {isMusician && (
+                <Input
+                  label="Spotify"
+                  value={profile.socialLinks?.spotify || ''}
+                  onChange={(e) => handleSocialChange('spotify', e.target.value)}
+                  placeholder="https://open.spotify.com/artist/..."
+                />
+              )}
             </>
           )}
         </CardContent>
@@ -979,7 +991,13 @@ export default function ProfileWizardPage() {
               </Button>
             )}
             {stepIndex === steps.length - 1 && (
-              <Button size="sm" loading={updateMutation.isPending} onClick={handleSave} className="w-full sm:w-auto">
+              <Button
+                size="sm"
+                loading={updateMutation.isPending}
+                disabled={isInitialSetup && !acceptedTerms}
+                onClick={handleSave}
+                className="w-full sm:w-auto"
+              >
                 Save & Verify Email
               </Button>
             )}

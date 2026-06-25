@@ -18,7 +18,8 @@ export function ProtectedRoute({ children, requireRole, superAdminAllowed = fals
   useEffect(() => {
     if (isLoading) return;
     if (!user) {
-      router.replace('/login');
+      const loginUrl = `/login?redirect=${encodeURIComponent(pathname)}`;
+      router.replace(loginUrl);
       return;
     }
     if (requireRole && user.role !== requireRole) {

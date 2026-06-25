@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Card, CardHeader, CardContent } from '@/components/ui/Card';
 import { useRegister } from '@/hooks/useAuth';
+import { legalSectionHref } from '@/lib/legal';
 
 type Role = 'MUSICIAN' | 'VENUE';
 
@@ -20,6 +21,7 @@ function RegisterForm() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [role, setRole] = useState<Role>('MUSICIAN');
+  const [acceptedTerms, setAcceptedTerms] = useState(false);
   const register = useRegister();
 
   useEffect(() => {
@@ -85,7 +87,28 @@ function RegisterForm() {
               </label>
             </div>
           </div>
-          <Button type="submit" className="w-full" loading={register.isPending}>
+          <div className="rounded-xl border border-zinc-800 bg-zinc-900/40 px-3 py-3">
+            <label className="flex cursor-pointer items-start gap-2.5">
+              <input
+                type="checkbox"
+                checked={acceptedTerms}
+                onChange={(e) => setAcceptedTerms(e.target.checked)}
+                className="mt-1 h-4 w-4 shrink-0 rounded border-zinc-600 bg-zinc-900 text-violet-500 focus:ring-violet-500"
+              />
+              <span className="text-xs leading-relaxed text-zinc-300 sm:text-sm">
+                I agree to the{' '}
+                <Link href={legalSectionHref('terms')} target="_blank" className="text-violet-400 hover:underline">
+                  Terms of Use
+                </Link>{' '}
+                and{' '}
+                <Link href={legalSectionHref('privacy')} target="_blank" className="text-violet-400 hover:underline">
+                  Privacy Policy
+                </Link>
+                .
+              </span>
+            </label>
+          </div>
+          <Button type="submit" className="w-full" loading={register.isPending} disabled={!acceptedTerms}>
             Sign up
           </Button>
         </form>

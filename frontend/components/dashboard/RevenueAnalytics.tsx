@@ -507,57 +507,6 @@ function RevenueContent({ items }: { items: RevenueItem[] }) {
   );
 }
 
-/** Compact preview for the summary tab */
-export function RevenueAnalyticsPreview({
-  items,
-  total,
-  onOpen,
-}: {
-  items: RevenueItem[];
-  total: number;
-  onOpen: () => void;
-}) {
-  const series = useMemo(() => buildMonthlySeries(items).slice(-6), [items]);
-  const max = Math.max(...series.map((p) => p.value), 1);
-
-  return (
-    <div className="relative overflow-hidden rounded-2xl border border-sky-500/20 bg-gradient-to-br from-sky-950/40 via-zinc-900/60 to-zinc-950 p-5 sm:p-6">
-      <div className="pointer-events-none absolute -left-8 top-0 h-32 w-32 rounded-full bg-sky-500/10 blur-3xl" aria-hidden />
-      <div className="relative flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-        <div>
-          <p className="text-xs font-semibold uppercase tracking-wider text-sky-300/70">Revenue insights</p>
-          <p className="mt-1 text-3xl font-bold tracking-tight text-zinc-50">{formatRevenue(total)}</p>
-          <p className="mt-1 text-sm text-zinc-400">Lifetime earnings from finalized gigs</p>
-        </div>
-        <button
-          type="button"
-          onClick={onOpen}
-          className="inline-flex items-center justify-center gap-2 rounded-xl border border-sky-500/30 bg-sky-500/10 px-4 py-2.5 text-sm font-semibold text-sky-200 transition-colors hover:bg-sky-500/20"
-        >
-          Open analytics
-          <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3" />
-          </svg>
-        </button>
-      </div>
-      {series.length > 0 && (
-        <div className="relative mt-5 flex h-16 items-end gap-1.5">
-          {series.map((p) => (
-            <div key={p.monthKey} className="flex flex-1 flex-col items-center gap-1">
-              <div
-                className="w-full rounded-t-md bg-gradient-to-t from-sky-600 to-cyan-400/80 transition-all"
-                style={{ height: `${Math.max(8, (p.value / max) * 100)}%` }}
-                title={`${p.label}: ${formatRevenue(p.value)}`}
-              />
-              <span className="text-[9px] text-zinc-600">{p.label.split(' ')[0]}</span>
-            </div>
-          ))}
-        </div>
-      )}
-    </div>
-  );
-}
-
 export function RevenueAnalyticsModal({
   open,
   onClose,

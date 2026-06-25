@@ -3,7 +3,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
 import { apiRequest } from '@/lib/api';
-import { setTokens, clearTokens, getPostAuthPath, type User } from '@/lib/auth';
+import { setTokens, clearTokens, getPostAuthPath, resolvePostLoginPath, type User } from '@/lib/auth';
 
 type AuthResponse = {
   success: boolean;
@@ -75,7 +75,9 @@ export function useLogin() {
     onSuccess: (data) => {
       setTokens(data.accessToken, data.refreshToken);
       queryClient.setQueryData(['auth'], data.user);
-      router.push(getPostAuthPath(data.user));
+      const redirect =
+        typeof window !== 'undefined' ? new URLSearchParams(window.location.search).get('redirect') : null;
+      router.push(resolvePostLoginPath(data.user, redirect));
     },
   });
 }

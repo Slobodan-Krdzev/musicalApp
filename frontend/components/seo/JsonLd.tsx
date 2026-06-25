@@ -6,7 +6,7 @@ export function SiteJsonLd() {
     '@type': 'Organization',
     name: siteConfig.name,
     url: siteUrl,
-    logo: `${siteUrl}/favicon.ico`,
+    logo: `${siteUrl}/gig.png`,
     email: siteConfig.contactEmail,
     description: siteConfig.description,
   };
