@@ -3,6 +3,7 @@ import { UnderDevelopmentModal } from '@/components/UnderDevelopmentModal';
 import { PublicNavbar } from '@/components/PublicNavbar';
 import { SiteFooter } from '@/components/Layout/SiteFooter';
 import { NewsletterSection } from '@/components/home/NewsletterSection';
+import { FreeTrialSection } from '@/components/home/FreeTrialSection';
 import { CursorGlow } from '@/components/about/CursorGlow';
 import { cn } from '@/lib/cn';
 import { createPageMetadata } from '@/lib/metadata';
@@ -91,10 +92,25 @@ export default function LandingPage() {
           </div>
         </section>
 
-        {/* Feature cards - For Venues, For Bands, Smart Booking */}
+        {/* Feature cards - For Venues, For Bands, Built-in Promotion */}
         <section className="bg-black px-4 py-16 sm:py-20">
           <div className="mx-auto max-w-6xl">
-            <div className="grid gap-6 md:grid-cols-3">
+            <div className="mx-auto max-w-2xl text-center">
+              <span className="inline-flex items-center rounded-full border border-zinc-800 bg-zinc-900/60 px-3 py-1 text-xs font-medium uppercase tracking-wide text-zinc-400">
+                Why GigConnection
+              </span>
+              <h2 className="mt-4 text-3xl font-bold tracking-tight text-white sm:text-4xl lg:text-5xl">
+                Everything you need to{' '}
+                <span className="bg-gradient-to-r from-indigo-400 via-violet-400 to-fuchsia-400 bg-clip-text text-transparent">
+                  book live gigs
+                </span>
+              </h2>
+              <p className="mt-3 text-base text-zinc-400 sm:text-lg">
+                From discovery to deal — one platform for venues, musicians, and smooth bookings.
+              </p>
+            </div>
+
+            <div className="mt-12 grid gap-6 md:grid-cols-3">
               <CursorGlow glow="violet" className="rounded-2xl border-zinc-800/80 bg-black p-6 text-left">
                 <div className="mb-4 inline-flex h-11 w-11 items-center justify-center rounded-xl bg-violet-500/20 text-violet-400">
                   <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5} aria-hidden>
@@ -120,12 +136,17 @@ export default function LandingPage() {
               <CursorGlow glow="fuchsia" className="rounded-2xl border-zinc-800/80 bg-black p-6 text-left">
                 <div className="mb-4 inline-flex h-11 w-11 items-center justify-center rounded-xl bg-violet-500/20 text-violet-400">
                   <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5} aria-hidden>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5m-9-6v.008M12 15v.008M12 12v.008M9 15v.008M9 12v.008M15 12v.008" />
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M10.34 15.84c-.688-.06-1.386-.09-2.09-.09H7.5a4.5 4.5 0 110-9h.75c.704 0 1.402-.03 2.09-.09m0 9.18c.253.962.584 1.892.985 2.783.247.55.06 1.21-.463 1.511l-.657.38c-.551.318-1.26.117-1.527-.461a20.845 20.845 0 01-1.44-4.282m3.102.069a18.978 18.978 0 011.745-2.98 8.75 8.75 0 00-5.113-1.258L15.25 4.28v9.72z"
+                    />
                   </svg>
                 </div>
-                <h3 className="text-lg font-bold text-white">Smart Booking</h3>
+                <h3 className="text-lg font-bold text-white">Built-in Promotion</h3>
                 <p className="mt-2 text-sm leading-relaxed text-zinc-400">
-                  Automated contracts, scheduling, and payments. Focus on the music, not the paperwork.
+                  Finalized gigs appear on our public Parties page and weekly newsletter — helping venues fill the room and musicians
+                  reach new fans beyond social media.
                 </p>
               </CursorGlow>
             </div>
@@ -210,7 +231,9 @@ export default function LandingPage() {
 
         <NewsletterSection />
 
-        {/* CTA */}
+        <FreeTrialSection />
+
+        {/* CTA — replaced by FreeTrialSection
         <section className="relative overflow-hidden border-t border-zinc-800/60 bg-zinc-950 py-24 px-4">
           <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-transparent via-violet-950/20 to-transparent" />
           <div className="relative z-10 mx-auto max-w-2xl text-center">
@@ -238,6 +261,7 @@ export default function LandingPage() {
             </div>
           </div>
         </section>
+        */}
 
         <SiteFooter />
       </main>
